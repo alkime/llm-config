@@ -158,7 +158,7 @@ Map file types to style guides for the learning loop:
 
 The bundled `bin/format_pr.py` script fetches PR comments:
 ```bash
-python3 .opencode/skills/pr/bin/format_pr.py [PR_NUMBER]
+python3 ${CLAUDE_SKILL_DIR}/bin/format_pr.py [PR_NUMBER]
 ```
 - Uses GitHub GraphQL API via `gh` CLI
 - Auto-detects PR from current branch
