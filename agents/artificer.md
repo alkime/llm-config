@@ -86,6 +86,27 @@ Implement what the task describes:
 - Make focused changes that address the task requirements
 - Don't over-engineer or add unrequested features
 
+### Phase 5b: Write Tests
+Write unit tests for any new business logic, handlers, or non-trivial code you implemented in Phase 5. This is **not optional** — new code needs test coverage.
+
+**What to test:**
+- Biz layer methods: happy path, validation errors, domain error cases
+- Handler methods: request validation, error mapping, response shape
+- New utility functions or helpers with meaningful logic
+
+**What NOT to test:**
+- Generated code (Ent ORM, protobuf, Connect-RPC stubs)
+- Pure wiring/glue code (server setup, route registration)
+- Trivial constructors or struct definitions
+
+**How to write tests:**
+1. Find existing `_test.go` files near the code you changed — read them first to match the project's test patterns
+2. Use table-driven subtests, `testify/require` for fatal checks, `testify/assert` for non-fatal
+3. Follow the `_test` package suffix convention (e.g., `package biz_test`)
+4. See AGENTS.md "Testing Patterns" section for the canonical pattern
+
+If the task is purely schema definitions, codegen, proto definitions, config, or documentation — skip this phase.
+
 ### Phase 6: Verify
 Always run automated verification first:
 
@@ -191,6 +212,7 @@ When stopping, summarize:
 
 ## Guidelines
 
+- **Always use `tk` CLI for ticket operations**: Never directly edit `.tickets/*.md` files. Use `tk start`, `tk close`, `tk status`, `tk create`, `tk dep`, etc. Direct edits risk corrupting frontmatter structure.
 - **One task at a time**: Complete each task fully (implement, verify, commit) before starting the next
 - **Continue when clear**: If the next ready task is obvious, proceed without asking permission
 - **Return for guidance when needed**: Stop and ask the user when tasks are unclear, verification can't be fixed, discoveries warrant discussion, or you're unsure which task to pick next
@@ -217,3 +239,4 @@ When stopping, summarize:
 - Creating plan files instead of using existing tickets
 - Creating multiple worktrees for the same work stream
 - Using ticket IDs as branch names instead of descriptive slugs
+- **Directly editing `.tickets/*.md` files** instead of using `tk` commands — this can corrupt frontmatter
