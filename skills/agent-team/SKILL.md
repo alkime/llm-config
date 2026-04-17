@@ -1,6 +1,7 @@
 ---
 name: agent-team
 description: "Coordinated multi-agent teams for complex work. Sub-skills: (1) Architecture Design Team — produces a full technical design package from an architecture brief (systems design, API design, implementation plan, client architecture, review), then creates a tk epic for execution. (2) Build Team — executes an epic's work streams in parallel using isolated worktrees with validation."
+model: sonnet
 ---
 
 # Agent Team — Coordinated Multi-Agent Workflows

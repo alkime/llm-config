@@ -1,0 +1,76 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.chakra-ui.com)",
+      "WebFetch(domain:vercheck.ariga.io)",
+      "WebFetch(domain:sum.golang.org)",
+      "WebFetch(domain:riverqueue.com)",
+      "WebFetch(domain:registry.npmjs.org)",
+      "WebFetch(domain:proxy.golang.org)",
+      "WebFetch(domain:golangci-lint.run)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:fly.io)",
+      "WebFetch(domain:docs.docker.com)",
+      "WebFetch(domain:connectrpc.com)",
+      "WebFetch(domain:buf.build)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(which *)",
+      "Bash(wc *)",
+      "Bash(touch *)",
+      "Bash(tk *)",
+      "Bash(tail *)",
+      "Bash(supabase *)",
+      "Bash(sort *)",
+      "Bash(python3 *)",
+      "Bash(pwd)",
+      "Bash(playwright-cli:*)",
+      "Bash(playwright-cli *)",
+      "Bash(npx *)",
+      "Bash(npm *)",
+      "Bash(mv *)",
+      "Bash(mkdir *)",
+      "Bash(make *)",
+      "Bash(ls)",
+      "Bash(ls *)",
+      "Bash(head *)",
+      "Bash(golangci-lint *)",
+      "Bash(go *)",
+      "Bash(git:*)",
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(grep:*)",
+      "Bash(docker-compose *)",
+      "Bash(docker *)",
+      "Bash(cp *)",
+      "Bash(cat *)",
+      "Bash(bun *)",
+      "Bash(buf *)",
+      "Bash(atlas migrate:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Read(.env)",
+      "Read(.env.*)"
+    ],
+    "additionalDirectories": [
+      "/Users/jamcmdr/Library/Caches/ms-playwright",
+      "/Users/jamcmdr/Library/Caches/go-build",
+      "/Users/jamcmdr/go/pkg/mod/"
+    ]
+  },
+  "model": "sonnet",
+  "enabledPlugins": {
+    "gopls-lsp@claude-plugins-official": true
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high",
+  "skipAutoPermissionPrompt": true,
+  "autoUpdatesChannel": "stable"
+}
