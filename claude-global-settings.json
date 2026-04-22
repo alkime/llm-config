@@ -65,12 +65,11 @@
       "/Users/jamcmdr/go/pkg/mod/"
     ]
   },
-  "model": "sonnet",
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "autoUpdatesChannel": "latest",
   "skipAutoPermissionPrompt": true
 }
