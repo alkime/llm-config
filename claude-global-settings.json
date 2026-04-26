@@ -59,6 +59,9 @@
       "Read(.env)",
       "Read(.env.*)"
     ],
+    "ask": [
+      "Bash(gh pr merge *)"
+    ],
     "additionalDirectories": [
       "/Users/jamcmdr/Library/Caches/ms-playwright",
       "/Users/jamcmdr/Library/Caches/go-build",
