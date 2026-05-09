@@ -32,7 +32,14 @@ All worktrees MUST be in the `.worktrees/` directory. All subsequent work (imple
 
 **Step 1: Identify your work stream's branch name** from the epic's `## Work Streams` section (already read in Phase 1).
 
-**Step 2: Check for an existing worktree and reuse it if present:**
+**Step 2: Determine the base branch** — the branch your worktree will be cut from and the branch your PR will target.
+
+- **If the brief or epic specifies a project branch** (e.g., "base: `mobile-first-onboarding`", "PR target: project branch X"), use that as both the worktree base and the PR target.
+- **Otherwise, base off `main`** and target `main` with the PR.
+
+Project branches are an integration seam — multiple worktree PRs can land on a project branch before it PRs to `main`. They're also where e2e attestation runs (from the main checkout switched to the project branch, since `make e2e` is broken from worktrees). The artificer never runs `make e2e` itself — only `make check`. E2e attestation is the user's responsibility, performed once per project branch before it PRs to `main`.
+
+**Step 3: Check for an existing worktree and reuse it if present:**
 ```bash
 git worktree list
 ```
@@ -42,13 +49,22 @@ git worktree list
 cd .worktrees/<stream-slug>
 ```
 
-**If no worktree exists yet, create one:**
+**If no worktree exists yet, create one** — pass the base branch explicitly so it's not inherited from the current HEAD:
 ```bash
-git worktree add .worktrees/<stream-slug> -b <stream-slug>
-# Example: git worktree add .worktrees/supabase-auth -b supabase-auth
+# Off main (default)
+git worktree add .worktrees/<stream-slug> -b <stream-slug> origin/main
+
+# Off a project branch
+git worktree add .worktrees/<stream-slug> -b <stream-slug> origin/<project-branch>
+# Example: git worktree add .worktrees/onboarding-flow -b onboarding-flow origin/mobile-first-onboarding
 ```
 
 **If the epic has no `## Work Streams` section**, derive a descriptive kebab-case slug from the task or epic title (e.g., "Remove SQLite/LiteFS infrastructure" → `remove-sqlite-infra`). Never use ticket IDs as branch names.
+
+**When opening the PR**, target the base branch you cut from:
+```bash
+gh pr create --base <base-branch> --title "..." --body "..."
+```
 
 ### Phase 3: Find Ready Work
 Tasks belong to epics via parent/child relationships (`--parent=<epic-id>`). Find a ready task within this epic:
@@ -219,6 +235,8 @@ When stopping, summarize:
 - **One worktree per work stream**: Tasks in the same work stream share a worktree/branch. Check the parent epic's `## Work Streams` section for groupings.
 - **Reuse existing worktrees**: Check `git worktree list` before creating new ones
 - **Descriptive branch names**: Use kebab-case slugs that describe the work (e.g., `supabase-auth`, `db-schema-cleanup`), never ticket IDs
+- **Honor the project branch**: If the brief or epic specifies a project branch as the base, cut your worktree from it and target it with the PR. Don't bypass the project branch and PR straight to `main`.
+- **Never run `make e2e`**: `make check` is your verification ceiling. E2e attestation is the user's job, on the project branch from the main checkout.
 - **Verify before closing**: Never close a task with failing tests or lint
 - **Commit after each task**: Keep commits atomic and traceable
 - **Follow the task description**: Implement what was planned, not more

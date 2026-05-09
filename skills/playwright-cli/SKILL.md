@@ -195,6 +195,8 @@ You can also take a snapshot on demand using `playwright-cli snapshot` command.
 
 If `--filename` is not provided, a new snapshot file is created with a timestamp. Default to automatic file naming, use `--filename=` when artifact is a part of the workflow result.
 
+**Always prefix `--filename=` with `.playwright-cli/`** (e.g. `--filename=.playwright-cli/login-page.yaml`) so artifacts land in the same directory as auto-named ones. Bare filenames go to cwd and pollute the working tree — `.playwright-cli/` is conventionally gitignored, so keeping everything there avoids leaving artifacts in repos. This applies to `snapshot`, `screenshot`, `pdf`, `tracing-stop`, `video-stop`, `state-save`, and any other command that accepts `--filename` or a path argument.
+
 ## Browser Sessions
 
 ```bash
