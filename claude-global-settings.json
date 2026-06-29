@@ -68,19 +68,21 @@
       "/Users/jamcmdr/go/pkg/mod/"
     ]
   },
-  "enabledPlugins": {
-    "gopls-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
-  "autoUpdatesChannel": "latest",
-  "skipAutoPermissionPrompt": true,
-  "agentPushNotifEnabled": true,
   "statusLine": {
     "type": "command",
     "command": "npx -y ccstatusline@latest",
     "padding": 0,
     "refreshInterval": 10
-  }
+  },
+  "enabledPlugins": {
+    "gopls-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "xhigh",
+  "autoUpdatesChannel": "latest",
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "tui": "fullscreen"
 }
