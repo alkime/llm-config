@@ -68,6 +68,7 @@
       "/Users/jamcmdr/go/pkg/mod/"
     ]
   },
+  "model": "fable",
   "statusLine": {
     "type": "command",
     "command": "npx -y ccstatusline@latest",
@@ -82,7 +83,7 @@
   "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "latest",
+  "tui": "fullscreen",
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "tui": "fullscreen"
+  "skipAutoPermissionPrompt": true
 }
