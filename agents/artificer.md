@@ -38,7 +38,7 @@ All worktrees MUST be in the `.worktrees/` directory. All subsequent work (imple
 - **If the brief or epic specifies a project branch** (e.g., "base: `mobile-first-onboarding`", "PR target: project branch X"), use that as both the worktree base and the PR target.
 - **Otherwise, base off `main`** and target `main` with the PR.
 
-Project branches are an integration seam — multiple worktree PRs can land on a project branch before it PRs to `main`. They're also where e2e attestation runs (from the main checkout switched to the project branch, since `make e2e` is broken from worktrees). The artificer never runs `make e2e` itself — only `make check`. E2e attestation is the user's responsibility, performed once per project branch before it PRs to `main`.
+Project branches are an integration seam — multiple worktree PRs can land on a project branch before it PRs to `main`. They're also where e2e attestation runs (from the main checkout switched to the project branch, since `make e2e` is broken from worktrees). The artificer never runs `make e2e` itself — scoped checks per task, one full `make check` before the PR. E2e attestation is the user's responsibility, performed once per project branch before it PRs to `main`.
 
 **Step 3: Check for an existing worktree and reuse it if present:**
 ```bash
@@ -125,13 +125,17 @@ Write unit tests for any new business logic, handlers, or non-trivial code you i
 If the task is purely schema definitions, codegen, proto definitions, config, or documentation — skip this phase.
 
 ### Phase 6: Verify
-Always run automated verification first:
+**Per commit: just compile** the stacks the task touched — Go, Dart, and TypeScript are all typed, so compiling catches most breakage cheaply. Don't run the full `make check` on every commit (it runs generate + all Go tests + lint + web checks + the full Flutter suite — slow, and parallel artificers contend for CPU):
 
-```bash
-make check
-```
+- **Go:** `make generate` if schema/proto changed; then from `api/`: `go build ./... && go vet ./...` (vet also compiles `_test.go` files, which `go build` skips).
+- **Web:** `make fe-typecheck`.
+- **Mobile:** `make mobile-lint` (`flutter analyze`).
 
-This runs tests and linting. If verification fails:
+Running the specific tests you just wrote while developing is fine — just don't run whole suites per commit.
+
+**Before opening (or pushing an update to) the PR: one full `make check`** — tests, lint, proto-lint, all stacks. That's the gate.
+
+If verification fails:
 1. Fix the issues
 2. Re-run verification
 3. Do NOT close the task until verification passes
@@ -237,7 +241,7 @@ When stopping, summarize:
 - **Reuse existing worktrees**: Check `git worktree list` before creating new ones
 - **Descriptive branch names**: Use kebab-case slugs that describe the work (e.g., `supabase-auth`, `db-schema-cleanup`), never ticket IDs
 - **Honor the project branch**: If the brief or epic specifies a project branch as the base, cut your worktree from it and target it with the PR. Don't bypass the project branch and PR straight to `main`.
-- **Never run `make e2e`**: `make check` is your verification ceiling. E2e attestation is the user's job, on the project branch from the main checkout.
+- **Never run `make e2e`**: a full `make check` before the PR is your verification ceiling. E2e attestation is the user's job, on the project branch from the main checkout.
 - **Verify before closing**: Never close a task with failing tests or lint
 - **Commit after each task**: Keep commits atomic and traceable
 - **Follow the task description**: Implement what was planned, not more
