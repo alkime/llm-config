@@ -3,204 +3,231 @@ name: ios-sim
 description: Drive the iOS Simulator from the CLI — launch apps, tap/type/swipe, read the UI accessibility tree, capture screenshots, set permissions/location/deep-links. Use when the user wants to interact with an iOS app on the Simulator, take simulator screenshots, automate or test a Flutter/iOS app's UI, or reproduce a flow on the booted simulator. The iOS analog of playwright-cli.
 ---
 
-# iOS Simulator automation with SimPilot + simctl
+# iOS Simulator automation with AXe + simctl
 
 Two tools, used together:
 
-- **`xcrun simctl`** — Apple-native, always installed. Boot, install/launch apps,
-  **screenshots**, video, deep links, permissions, status bar. No tap/type.
-- **`simpilot`** ([SimPilot](https://github.com/ygrec-app/SimPilot), "Playwright for
-  iOS") — the interaction layer: **tap, type, swipe, read the accessibility tree,
-  assert, wait**. No idb required. Built from source at `~/dev/tools/SimPilot`,
-  symlinked to `~/.local/bin/simpilot`.
+- **`axe`** ([cameroncooke/AXe](https://github.com/cameroncooke/AXe), MIT, Homebrew:
+  `brew install cameroncooke/axe/axe`) — the interaction layer: **read the accessibility
+  tree, tap, type, swipe, gestures, hardware buttons, batch flows, screenshots, video**.
+  Injects HID events straight into the simulator, so it works **with the Simulator
+  window in the background** — no focus juggling. Verified on Xcode 26.3 / iOS 26.3.
+- **`xcrun simctl`** — Apple-native: boot, install/launch apps, deep links,
+  permissions, push, status bar, location.
 
-Use **simpilot for interaction** and **simctl for screenshots** (see Gotchas — SimPilot's
-own `screenshot` aborts on this macOS without Screen Recording permission, and the
-simctl framebuffer capture is pixel-perfect and permission-free anyway).
+(Replaces SimPilot, which needed the window frontmost, crashed on screenshots, and has
+been unmaintained since 2026-03.)
 
-## Critical: always target the booted device
+## Critical: always pass the booted UDID
 
-SimPilot's `--device` flag takes a device **name** (not a UDID) and defaults to a
-hardcoded `iPhone 16 Pro` that usually doesn't exist → `Simulator not found`. Resolve
-the booted device name once and pass it to every command:
+Every `axe` command requires `--udid`. Resolve it once:
 
 ```bash
-DEV=$(xcrun simctl list devices booted | sed -n 's/^[[:space:]]*\(.*\) ([0-9A-F-]\{36\}) (Booted).*/\1/p' | head -1)
-echo "$DEV"   # e.g. "iPhone 17 Pro"
+U=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin)["devices"];print(next((x["udid"] for v in d.values() for x in v),""))')
+echo "$U"   # empty → nothing booted
 ```
 
-Then `simpilot <cmd> ... --device "$DEV"` throughout. `xcrun simctl ... booted` needs
-no name — it auto-picks the booted device.
+Nothing booted? In the Penny repo, `./scripts/ensure-simulator.sh` boots the standard
+e2e device (iPhone 17, iOS 26.3). Otherwise `xcrun simctl boot "<name>"`.
 
-## Quick start
+## Reading the screen
+
+`axe describe-ui` dumps the full tree as JSON (verbose: frames, roles, pids…). For
+deciding what to tap, flatten it to labels:
 
 ```bash
-DEV=$(xcrun simctl list devices booted | sed -n 's/^[[:space:]]*\(.*\) ([0-9A-F-]\{36\}) (Booted).*/\1/p' | head -1)
-
-simpilot tree --device "$DEV" --max-depth 6     # see what's on screen (scope the noise)
-simpilot tap   --label "Email" --device "$DEV"  # tap by accessibility label
-simpilot type  --text "james@local.dev" --device "$DEV"
-xcrun simctl io booted screenshot /tmp/step.png # capture (NOT simpilot screenshot)
-open /tmp/step.png
+axe describe-ui --udid "$U" | python3 -c 'import json,sys
+def w(n):
+  for x in n:
+    if x.get("AXLabel") or x.get("AXValue"):
+      print(x["type"], "|", (x.get("AXLabel") or "").replace("\n"," / "), "|", x.get("AXValue") or "")
+    w(x.get("children") or [])
+w(json.load(sys.stdin))'
 ```
 
-Keep the **Simulator window visible and frontmost** while tapping/typing — SimPilot
-injects HID events at on-screen coordinates. Bring it forward with:
-`open -a Simulator`.
+`axe describe-ui --udid "$U" --point 200,400` describes just the element at a point.
 
-## Interaction (simpilot)
+Prefer the tree over screenshots for navigation; take a screenshot when you need to
+judge layout/visuals or show the user.
+
+## Interaction
 
 ```bash
-# Find / read the UI — prefer this over screenshots for deciding what to tap.
-simpilot tree   --device "$DEV"                 # full accessibility tree
-simpilot tree   --device "$DEV" --max-depth 6   # trim depth (tree is verbose)
-simpilot tree   --device "$DEV" --format json   # machine-readable
+# Tap — by accessibility label / id / value, or raw coordinates (points).
+# Label matching is exact — a partial label fails with "No accessibility element matched".
+axe tap --label "Sign in"                 --udid "$U"
+axe tap --label "Sign in" --element-type Button --udid "$U"   # disambiguate
+axe tap --id "signin_button"              --udid "$U"         # accessibilityIdentifier
+axe tap -x 200 -y 600                     --udid "$U"
+axe tap --label "Dashboard" --wait-timeout 10 --udid "$U"     # poll until it appears
 
-# Tap — targeting precedence: prefer --id, then --label, then --text (OCR fallback).
-simpilot tap --id   "signin_button"  --device "$DEV"   # accessibility identifier
-simpilot tap --label "Sign in"       --device "$DEV"   # accessibility label
-simpilot tap --text  "Sign in"       --device "$DEV"   # visible text via OCR
-simpilot tap --label "Sign in" --type button --device "$DEV"  # disambiguate by element type
-# Optional: --timeout <secs> (default 5)
+# Type into the focused field (tap the field first). US-keyboard chars only.
+axe tap --label "Email" --udid "$U" && axe type 'james@local.dev' --udid "$U"
+echo 'long text' | axe type --stdin --udid "$U"
 
-# Type — optionally focus a field first by id/label, else types into current focus.
-simpilot type --text "hello"                         --device "$DEV"
-simpilot type --text "secret" --label "Password"     --device "$DEV"
-simpilot type --text "x"      --field "password_fld" --device "$DEV"   # focus by a11y id
+# Scroll / swipe
+axe gesture scroll-down --udid "$U"       # scroll-up|down|left|right, swipe-from-*-edge
+axe swipe --start-x 200 --start-y 700 --end-x 200 --end-y 200 --udid "$U"
 
-# Swipe — direction is a positional arg.
-simpilot swipe up    --device "$DEV"
-simpilot swipe down  --distance 500 --device "$DEV"   # up | down | left | right
-
-# Assert / wait — useful as flow gates and in scripts (non-zero exit on failure).
-simpilot wait   --text "Dashboard"  --timeout 10 --device "$DEV"
-simpilot assert visible     --label "Sign in"   --device "$DEV"
-simpilot assert not-visible --text  "Spinner"   --device "$DEV"
+# Hardware buttons: home | lock | side-button | siri | apple-pay
+axe button home --udid "$U"
 ```
 
-There is **no coordinate (x/y) tap** in this build — only id/label/text. If a control
-can't be found by any of those, it likely lacks an accessibility label (see Flutter note).
-
-## App / device / context (simpilot OR simctl)
+**Batch** — one HID session, faster for multi-step flows (multi-word labels need inner
+quotes):
 
 ```bash
-# Apps
-simpilot app launch    <bundle-id>        --device "$DEV"
-simpilot app install   <path/to.app>      --device "$DEV"
-simpilot app terminate <bundle-id>        --device "$DEV"
-xcrun simctl launch booted <bundle-id>                     # native equivalent
-xcrun simctl listapps booted | grep -i <name>              # find an installed bundle id
-
-# Deep links / universal links
-simpilot url "pennyhelps://settings/profile" --device "$DEV"
-xcrun simctl openurl booted "https://app.staging.pennyhelps.ai/..."
-
-# Permissions, push, location
-simpilot permission grant-all <bundle-id>      --device "$DEV"
-simpilot permission set <...>                  --device "$DEV"   # see: simpilot permission set --help
-simpilot push "Title" "Body" --bundle-id <id>  --device "$DEV"
-simpilot location 48.8566 2.3522               --device "$DEV"
-
-# Devices
-simpilot devices list
-simpilot devices boot     "iPhone 17 Pro"
-simpilot devices shutdown "iPhone 17 Pro"
+axe batch --udid "$U" --wait-timeout 5 \
+  --step "tap --label Email"    --step "type 'james@local.dev'" \
+  --step "tap --label Password" --step "type 'LocalDev123!'" \
+  --step "tap --label 'Sign in'" --step "sleep 2"
 ```
 
-## Screenshots (use simctl — most reliable)
+## Multiple simulators (multi-profile flows)
+
+AXe and simctl both target by UDID, so drive two+ sims side by side (e.g. one user
+requests, another claims). Boot an extra device and install the already-built app —
+a Flutter debug `Runner.app` runs fine standalone on a sim:
 
 ```bash
-xcrun simctl io booted screenshot /tmp/shot.png            # pixel-perfect, no permissions
-xcrun simctl io booted screenshot --type jpeg /tmp/shot.jpg
+B=<udid from: xcrun simctl list devices available>
+xcrun simctl boot "$B" && xcrun simctl bootstatus "$B" -b
+APP=clients/mobile/build/ios/iphonesimulator/Runner.app
+BID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
+xcrun simctl install "$B" "$APP" && xcrun simctl launch "$B" "$BID"
+```
+
+Without `flutter run` attached, read app logs with
+`xcrun simctl spawn "$U" log stream --style compact --predicate 'process == "Runner"'`
+(background it to a file; Flutter `print`s show up as `(Flutter) flutter: …`).
+Relaunching the app via simctl detaches any running `flutter run`.
+
+## Speaking to the app (voice input)
+
+The simulator's mic can be fed synthetic speech through **BlackHole**, fully from the
+CLI, with the bundled **`sim-say.sh`** (next to this file):
+
+```bash
+~/.claude/skills/ios-sim/sim-say.sh \
+  --start "axe tap -x 201 -y 539 --udid $U >/dev/null" \
+  "Could someone from my circle help me pick up groceries Saturday?"
+```
+
+It switches the **Mac's** default input to BlackHole (`SwitchAudioSource`), runs
+`--start` (the tap that begins recording — the app opens its recorder on whatever
+input is current at that moment, so the switch must come first), plays the text into
+BlackHole with `say`, and **always restores the previous input** via an EXIT trap.
+Then tap again to send. Options: `-v <say voice>`, `--pre <secs>` (wait before
+speaking, default 1.5).
+
+Setup (one-time): `brew install blackhole-2ch switchaudio-osx`, then
+`sudo killall coreaudiod` (or reboot) for BlackHole to appear. The Simulator's
+**I/O → Audio Input** must be **System** (default) so it follows the Mac's input — no
+per-run menu clicks, and no sim reboot needed when the input switches.
+
+Gotchas:
+- If coreaudiod restarts while a sim is running, that sim's recorder breaks
+  (`RecorderFailedToStartDeviceException` / `RecorderInitializeFailedException` in the
+  app log) until you **reboot the sim** (`simctl shutdown` + `boot`).
+- The Mac's real mic is unavailable for the few seconds a run takes.
+- STT may emit a stray first partial (e.g. "Sim.") from the start chime — harmless.
+
+Verified end to end on Penny (2026-10-08): real ElevenLabs STT transcribed `say` output
+verbatim, with the Simulator on System input and no reboot.
+
+## Screenshots & video
+
+```bash
+xcrun simctl io "$U" screenshot /path/shot.png        # pixel-perfect, no permissions
+axe screenshot --udid "$U" --output /path/shot.png    # equivalent
 
 # Cleaner marketing-style shots: freeze the status bar first
-xcrun simctl status_bar booted override \
-  --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
-xcrun simctl status_bar booted clear                       # undo
+xcrun simctl status_bar "$U" override --time "9:41" --batteryState charged --batteryLevel 100
+xcrun simctl status_bar "$U" clear
 ```
 
-`simpilot screenshot` exists but aborts here (`CGS_REQUIRE_INIT`) unless the terminal
-has **Screen Recording** permission — don't rely on it; use the simctl line above.
+Write screenshots to the session scratchpad, not the repo.
 
-## Video recording (simctl — record a whole flow)
+**Video**: `axe record-video` (see `axe help record-video`), or simctl:
+`xcrun simctl io "$U" recordVideo --codec h264 --force /path/run.mov` in the background,
+drive the flow, then stop with **SIGINT** (`pkill -INT -f "simctl io .* recordVideo"`) —
+any other signal leaves a corrupt file. Exit 130 is normal; wait for "Wrote video to:"
+before reading it.
 
-`xcrun simctl io booted recordVideo` records the device display to a `.mov`. SimPilot
-has no video command — this is pure simctl. **The file is only finalized on SIGINT** —
-the recorder runs until interrupted, then writes the movie. Killing it any other way
-(SIGKILL/SIGTERM) leaves a corrupt/empty file.
+## Showing the user what you see
 
-Agent-safe pattern — **start in the background, drive actions, stop with SIGINT**:
+Screenshots you `Read` appear only in *your* tool output — the user can't see them.
+Never say "see the screenshot above." To show them:
+
+- **terminal-browser available** (`which terminal-browser`): write a small HTML page in
+  the scratchpad that `<img>`s the PNGs (relative paths, side by side with captions) and
+  open it with `terminal-browser new-tab <path.html>` (or
+  `terminal-browser open <path.html> --split right` if no browser pane is open yet).
+  One page per walkthrough works well.
+- Otherwise: `open /path/shot.png` (Preview) or give them the path.
+
+## App / device / context (simctl)
 
 ```bash
-DEV=$(xcrun simctl list devices booted | sed -n 's/^[[:space:]]*\(.*\) ([0-9A-F-]\{36\}) (Booted).*/\1/p' | head -1)
-
-# 1. Start recording in the background (run_in_background, or `&` in a plain shell).
-#    --force overwrites an existing file; --codec h264 is widely compatible (default is hevc).
-xcrun simctl io booted recordVideo --codec h264 --force /tmp/run.mov   # background this
-
-# 2. simctl prints "Recording started" to stderr once the first frame lands — wait for it.
-
-# 3. Drive the flow.
-simpilot tap  --label "Email"    --device "$DEV"
-simpilot type --text "james@local.dev" --device "$DEV"
-simpilot tap  --label "Sign in"  --device "$DEV"
-
-# 4. Stop with SIGINT — NOT SIGKILL. The recorder finalizes and exits.
-pkill -INT -f "simctl io booted recordVideo"
-#   or, if you captured the PID:  kill -INT "$REC_PID"
+xcrun simctl listapps "$U" | grep -i <name>          # find installed bundle ids
+xcrun simctl launch "$U" <bundle-id>
+xcrun simctl terminate "$U" <bundle-id>
+xcrun simctl openurl "$U" "pennyhelps://settings/profile"
+xcrun simctl privacy "$U" grant <service> <bundle-id>   # see: xcrun simctl help privacy
+xcrun simctl push "$U" <bundle-id> payload.apns
+xcrun simctl location "$U" set 47.6062,-122.3321
+axe list-simulators                                  # all sims with UDIDs/state
 ```
-
-Notes:
-- A **non-zero exit (130)** from the recorder is normal — it was terminated by a signal;
-  the `.mov` is still written. Confirm with `xcrun ffprobe -show_format /tmp/run.mov`.
-- Finalizing takes a beat after SIGINT ("Recording completed. Writing to disk." →
-  "Wrote video to: …"). Don't read the file until that line appears.
-- Options: `--codec h264|hevc`, `--display internal|external`, `--mask ignored|black`,
-  `--force`. Default codec is `hevc` (smaller, but h264 plays more places).
-- Only ~one recorder at a time per device; the broad `pkill -f` above stops any of them.
-
-## Scripted flows (YAML)
-
-For repeatable multi-step runs (e.g. capturing a whole login → dashboard journey),
-SimPilot runs a YAML flow with built-in waits/asserts/screenshots:
-
-```bash
-simpilot run flow.yaml --device "$DEV" --output ./shots
-simpilot run flow.yaml --device "$DEV" --dry-run    # print parsed steps, run nothing
-```
-
-Reach for this when the same sequence will be replayed; otherwise the one-off commands
-above are simpler. (`--device` here overrides the device named inside the flow file.)
 
 ## Gotchas
 
-- **Always pass `--device "$DEV"`** — the default `iPhone 16 Pro` won't exist (see top).
-- **Window must be visible & frontmost** for tap/type/swipe (HID injection). `open -a Simulator`.
-- **Screenshots via simctl, not simpilot** (window-server abort without Screen Recording perm).
-- **`simpilot tree` is noisy** — it reads the *host* macOS accessibility tree, so it
-  includes Simulator.app's menu bar (Apple/File/Edit/…). The device UI is under the
-  `iPhone … – iOS …` node. Use `--max-depth`, `--format json`, or grep to cut the noise.
-- **Flutter apps**: widgets surface in the tree **only if they expose semantics**
-  (most Material/Cupertino widgets do — we confirmed Email/Password/"Sign in" on Penny).
-  If a control isn't found by id/label, wrap it in a `Semantics(label: ...)` in the
-  Flutter code, or fall back to `--text` (OCR). No x/y tap exists as a last resort.
-- **Permissions needed once**: Accessibility (for tree/tap — already granted) and,
-  only if you want `simpilot screenshot`, Screen Recording. TCC grants apply after a
-  full terminal restart.
+- **Flutter tab labels include the position hint**: a bottom-nav item's AXLabel is
+  literally `"Pins\nTab 3 of 3"`. Match the whole string (`--label $'Pins\nTab 3 of 3'`)
+  or tap by coordinates from the tree's `frame`.
+- **Flutter semantics**: widgets appear in the tree only if they expose semantics (most
+  Material/Cupertino widgets do). If a control is missing, add `Semantics(label: …)` in
+  the Flutter code, or fall back to `-x/-y` (points, from the tree's `frame`; screenshot
+  pixels ÷ 3 on iPhone 17).
+- **`axe type` is US-keyboard only** — no accented/international characters.
+- **Fast typing drops characters** (seen: `george@local.dev` → `george@local`), especially
+  in `batch` right after a tap. `sleep 1` after focusing a field, type in short chunks
+  with ~0.4s pauses, and verify the field's `AXValue` before submitting. Clear a field
+  with `axe key-combo --modifiers 227 --key 4` (Cmd+A) then `axe key 42` (delete).
+- **Unlabeled controls** (e.g. Penny's big mic button) need `-x/-y`, and their position can
+  shift between states — re-screenshot when a tap seems to do nothing, and check app logs
+  to tell "tap missed" from "tap landed, feature failed".
+- **System prompts** (notifications, permissions) appear in the tree like app UI —
+  tap "Not now"/"Allow" by label, or pre-grant with `simctl privacy`.
+- **Homebrew may nag "Xcode is outdated"** when installing/upgrading axe — advisory only.
+  Don't upgrade Xcode as a side effect; it changes the simulator runtime the e2e
+  attestation pins.
 
 ## Penny specifics
 
-- Booted dev sim: **iPhone 17 Pro** (iOS 26.3). The `$DEV` snippet resolves it generically.
-- Bundle ids: `ai.pennyhelps.pennyMobile` (prod flavor) and `ai.pennyhelps.pennyMobile.dev`
-  (dev flavor). Confirm what's installed: `xcrun simctl listapps booted | grep -i penny`.
-- Mobile app source: `clients/mobile`. Build/run it the normal way (`make mobile-*` /
-  `flutter run` from there) if no Penny bundle is installed on the sim yet.
-- For deterministic mobile e2e the repo already uses Flutter `integration_test` (see
-  AGENTS.md → E2E Attestation). SimPilot is for *ad-hoc* driving/screenshots, not a
-  replacement for that attested suite.
+- Run the app: `make mobile-dev` (backgrounded) — `flutter run` against local Supabase
+  and the API on `127.0.0.1:8080` (`make dev` or `make compose-up`). "Flutter run key
+  commands." in the output means it's up; hot reload stays live.
+- Seed users first: `make seed-dev-data notebooks=1` → `admin@` / `james@` /
+  `george@local.dev`, password `LocalDev123!`, FTUX done, sample notebooks on James.
+- First sign-in shows a "Turn on notifications?" sheet → tap "Not now".
+- Home tabs: Ask / Circles / Pins; Memories (Notebooks / Chats / Saved) via
+  Pins → "Go to Memories".
+- **Sending to Penny is voice-only** ("View chat" is a read-only viewer), so creating a
+  request needs the BlackHole recipe above. Mic button (unlabeled): ~(201, 539) on the
+  resting Ask screen, ~(201, 620) once a session is open (iPhone 17). "Tap to send" in
+  the tree = recording.
+- Request → claim flow (verified with james@ on sim A, george@ on sim B): speak request →
+  Penny's draft → "Send to my Circle" → B: Circles → "Circles I'm In" → "New requests" →
+  "I'll help" → "Yes, I'll help" → A: Circles shows "George will help". Leaving Ask via
+  "Done" asks "Done with this Ask session?" → "Yes, I'm done".
+- Bundle ids: `ai.pennyhelps.pennyMobile` (prod flavor), `ai.pennyhelps.pennyMobile.dev`
+  (dev flavor).
+- For deterministic mobile e2e the repo uses Flutter `integration_test` (AGENTS.md → E2E
+  Attestation). AXe is for *ad-hoc* driving, verification, and screenshots.
 
 ## Reference
 
-- SimPilot repo: https://github.com/ygrec-app/SimPilot (Swift, MIT, early-stage —
-  built from source; no Homebrew formula yet)
-- Full flag help: `simpilot <subcommand> --help`
+- `axe help <subcommand>` for full flags (tap, type, swipe, gesture, batch, touch, drag,
+  key, key-combo, slider, record-video, stream-video).
+- `axe init` installs AXe's own upstream skill files for AI clients — not needed; this
+  skill covers it.
