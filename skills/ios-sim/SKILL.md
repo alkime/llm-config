@@ -220,8 +220,13 @@ axe list-simulators                                  # all sims with UDIDs/state
   Penny's draft → "Send to my Circle" → B: Circles → "Circles I'm In" → "New requests" →
   "I'll help" → "Yes, I'll help" → A: Circles shows "George will help". Leaving Ask via
   "Done" asks "Done with this Ask session?" → "Yes, I'm done".
-- Bundle ids: `ai.pennyhelps.pennyMobile` (prod flavor), `ai.pennyhelps.pennyMobile.dev`
-  (dev flavor).
+- Bundle id of the local `make mobile-dev` build: `ai.pennyhelps.realPennyMobile` (confirm
+  with `xcrun simctl listapps "$U" | grep -o 'ai\.pennyhelps[A-Za-z.]*'`).
+- Live voice conversations (Profile → VOICE, a CheckBox; AXValue 1 = on) switches Ask to
+  duplex: "Tap to call Penny" at ~(201, 560), end with "Done" → "Yes, end the call".
+  With it off, Ask is tap-to-talk; close with "Done" → "Yes, I'm done". Right after a
+  close, wait ~3s and re-read the tree before tapping the mic — a tap during the
+  transition opens a recorder that misses the speech.
 - For deterministic mobile e2e the repo uses Flutter `integration_test` (AGENTS.md → E2E
   Attestation). AXe is for *ad-hoc* driving, verification, and screenshots.
 
