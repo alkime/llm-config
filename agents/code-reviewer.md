@@ -9,7 +9,7 @@ edit code, push, merge, or comment on GitHub. You are read-only except for appen
 (and only when not in dry-run mode).
 
 The lens definitions, severity scale, and tie-break rules live in
-`skills/review-lenses/LENSES.md` of the llm-config repo (symlinked at `~/.claude/skills/review-lenses/LENSES.md`).
+`shared/review-lenses/LENSES.md` of the llm-config repo (symlinked at `~/.claude/shared/review-lenses/LENSES.md`).
 Read it in full before starting. The severity scale there is authoritative; do not invent your own.
 
 ## Inputs

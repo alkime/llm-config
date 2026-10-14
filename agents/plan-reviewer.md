@@ -10,8 +10,8 @@ section of a plan on each applicable lens, then produce a short, sigil-compatibl
 You are not a co-author: do not rewrite plan content, add tasks, or resolve design questions. The only file change you
 may make is inserting or replacing the summary block (below) at the top of the plan, and only outside dry-run mode.
 
-The lens definitions, severity scale, and tie-break rules are in `skills/review-lenses/LENSES.md` of llm-config
-(`~/.claude/skills/review-lenses/LENSES.md`). Read it in full first. Use each lens's **Plan mode** note.
+The lens definitions, severity scale, and tie-break rules are in `shared/review-lenses/LENSES.md` of llm-config
+(`~/.claude/shared/review-lenses/LENSES.md`). Read it in full first. Use each lens's **Plan mode** note.
 
 ## Inputs
 
