@@ -4,17 +4,37 @@ Create a pull request with auto-generated description, or update an existing PR'
 
 ## Workflow
 
-### 1. Gather Branch Information
+### 1. Determine the Base Branch
+
+Never assume `main`. Resolve `BASE` in this order, first hit wins:
 
 ```bash
-# Get current branch name
-git branch --show-current
+HEAD_BRANCH=$(git branch --show-current)
 
-# List commits on this branch vs main
-git log main..HEAD --oneline
+# 1. Existing PR for this branch: keep its base
+BASE=$(gh pr view --json baseRefName -q .baseRefName 2>/dev/null)
 
-# Show detailed diff stats
-git diff main...HEAD --stat
+# 2. gh stack extension: the stack parent of this branch
+[ -z "$BASE" ] && gh stack view 2>/dev/null   # read the parent of $HEAD_BRANCH from the output, if installed and in a stack
+
+# 3. Epic: the stream's `base:` in the epic's Work Streams, or its project branch
+#    (tk show <epic>; the user or the task body names the epic)
+
+# 4. Branch upstream relationship: the nearest ancestor branch with a remote
+#    git merge-base against candidate project/stack branches; pick the one with the fewest commits ahead
+
+# 5. Fallback: main (say so in the output)
+```
+
+State the chosen base and why before creating the PR. If sources 1-3 disagree (e.g. epic says project branch but the worktree was cut from main), stop and ask. A stream PR must never silently target main when the epic names a project branch.
+
+**Project->main mode:** if `BASE` is `main` and `HEAD_BRANCH` is an epic's project branch, load [LEDGER.md](LEDGER.md) and use its body instead of Step 4's template.
+
+Then gather the diff against `$BASE`:
+
+```bash
+git log origin/$BASE..HEAD --oneline
+git diff origin/$BASE...HEAD --stat
 ```
 
 ### 2. Check for Existing PR
@@ -34,7 +54,7 @@ gh pr view --json number,title,body,state 2>/dev/null
 - If not pushed, push first: `git push -u origin $(git branch --show-current)`
 - Proceed to create flow (Step 5a)
 
-### 3. Analyze Changes
+### 3. Analyze Changes (against `$BASE`)
 
 Review the commits and changes to understand:
 - What was added, removed, or modified
@@ -66,7 +86,7 @@ PREOF
 ### 5a. Create New PR
 
 ```bash
-gh pr create --title "your title here" --body-file /tmp/claude/pr-body.md
+gh pr create --base "$BASE" --title "your title here" --body-file /tmp/claude/pr-body.md
 ```
 
 **Important:** After creating, verify tracking is set up:
@@ -99,6 +119,8 @@ Output the PR URL so the user can review it.
 
 ## Notes
 
+- For stacked PRs, add "Stack: based on `<parent-branch>` (n/m)" to the Summary; when the parent merges, retarget (`gh pr edit --base`) and `git rebase`, never merge.
+- Write `.sigil/review-order.yaml` locally if the project uses sigil review (never commit it).
 - Always use `/tmp/claude/` for temp files (sandbox-safe)
 - The `--body-file` flag avoids shell quoting issues with complex markdown
 - Ask before overwriting existing descriptions that have content

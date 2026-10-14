@@ -30,7 +30,7 @@ Create or update a pull request description.
 
 **Triggers:** "open a PR", "create a pull request", "update PR description"
 
-**→ Load [OPEN.md](resources/OPEN.md) for detailed workflow**
+**→ Load [OPEN.md](resources/OPEN.md) for detailed workflow.** The base branch is detected (existing PR, gh stack, epic project branch), not assumed to be `main`. A PR from an epic's project branch to `main` also loads [LEDGER.md](resources/LEDGER.md) to render the Ledger and Smoke-test guide.
 
 ### Phase 2: Address Comments
 
@@ -104,11 +104,11 @@ git branch --show-current
 # Check if tracking remote
 git rev-parse --abbrev-ref @{upstream} 2>/dev/null
 
-# Commits since main
-git log main..HEAD --oneline
+# Commits since the base (see OPEN.md for how to resolve $BASE; main only as a fallback)
+git log origin/$BASE..HEAD --oneline
 
 # Diff stats
-git diff main...HEAD --stat
+git diff origin/$BASE...HEAD --stat
 ```
 
 ### PR Discovery (Multi-Worktree)
@@ -149,7 +149,8 @@ Map file types to style guides for the learning loop:
 
 | Resource | Content |
 |----------|---------|
-| [OPEN.md](resources/OPEN.md) | Open/update PR description workflow |
+| [OPEN.md](resources/OPEN.md) | Open/update PR description workflow; stack-aware base detection |
+| [LEDGER.md](resources/LEDGER.md) | Project->main PR: Ledger + Smoke-test guide rendering |
 | [COMMENTS.md](resources/COMMENTS.md) | Validation mechanics for review comments |
 | [STYLE_GUIDE_ANALYSIS.md](resources/STYLE_GUIDE_ANALYSIS.md) | Learning from feedback patterns |
 | [FOUND_WORK.md](resources/FOUND_WORK.md) | Capturing discovered work as tickets |
@@ -164,3 +165,5 @@ python3 ${CLAUDE_SKILL_DIR}/bin/format_pr.py [PR_NUMBER]
 - Auto-detects PR from current branch
 - Groups by resolved status (unresolved first)
 - Includes diff hunks and reply threads
+
+`bin/render_ledger.py <epic-id>` renders the epic's Ledger notes and smoke-test guide as Markdown (project->main mode; see LEDGER.md).
