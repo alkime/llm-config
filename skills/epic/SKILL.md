@@ -65,6 +65,8 @@ Exactly one per task (see Tags). Pick the cheapest tier that actually exercises 
 
 A task that is both testable and voice-dependent gets its testable tier plus a `verify-voice` note in its body; use tag `verify-voice` alone only when nothing else can run. Always add the stream tag too (e.g. `ws-<stream>`) and any domain tags (`backend`, `mobile`, ...).
 
+Also add one review tier tag (`review-standard` or `review-deep`) beside the verify tag. Use `review-deep` when the task's PR is stacked-upon (a foundation PR), touches migrations/schema, touches auth/RBAC, or will exceed ~800 changed lines; otherwise `review-standard`. The artificer passes the tier to the code-reviewer; where a stream's tasks differ, the deepest tier wins for the stream's PR.
+
 ### 6. Human-blocker tasks
 
 Anything an agent cannot or must not do: manual console config (EL agent client events, ASC, Supabase dashboard), secrets (`fly secrets set`), TestFlight uploads, data cleanup on staging/prod, schema rewinds, `make e2e` attestation, calibration sessions. Each is a task tagged `human-blocker` (plus a verify tag, usually `verify-cursory`), with an exact checklist of what to do and what it unblocks. Wire it with `tk dep` so downstream tasks show as blocked. Artificers skip and report these; they never close them.
@@ -100,6 +102,7 @@ Print the epic id, the stream/branch/base table, the human-blocker list, and the
 | Tag | Where | Meaning |
 |-----|-------|---------|
 | `verify-cursory`/`-integration`/`-full`/`-voice` | task | verification tier, exactly one |
+| `review-standard`/`review-deep` | task | code-reviewer tier, exactly one (default `review-standard`): single lens pass + correctness subagent + judge. `review-deep` = shared-context fan-out, one subagent per lens. |
 | `human-blocker` | task | human-only; artificers skip |
 | `ws-<stream>` | task | stream membership (matches Work Streams) |
 | epic tag | epic + tasks | groups an epic's tickets (optional) |
