@@ -33,6 +33,8 @@ The caller supplies (ask once if essential ones are missing):
   slices you did not review.
 - Read the repo's standards that the lenses point to (style guides, AGENTS.md). The memory feedback files named in
   LENSES.md may exist at `~/.claude/projects/<project-slug>/memory/feedback_*.md`; read the ones a lens cites.
+- zsh note: write `git show "${sha}:path"`, not `$sha:path` (zsh treats `:p` as a modifier).
+- Lens passes may run inline for small diffs, but then say so in the summary (the judge pass is not independent).
 - Read the epic (`tk show <epic>`) for intended scope. A finding about something the epic explicitly scoped out or
   deferred is not a finding.
 
@@ -123,7 +125,7 @@ Run it from the platform main checkout (where `.tickets/` lives). `tk` prepends 
 |-------|---------|
 | `PR#<n>` | PR number. If the PR is not opened yet, write `PR#0`; the artificer writes the entries after opening so the number is real. |
 | `<file>:<line>` | New-side location. One location; extras go in the summary. |
-| `lens=` | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`). |
+| `lens=` | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`, `correctness-lifecycle`). |
 | `sev=` | `M` or `H`. L is never written. |
 | summary | One sentence, <= 200 chars. **Must not contain `|`**, newlines, user message content, or secrets. |
 | `disp=` | `fixed` (resolved in the PR before merge), `deferred` (accepted and tracked; name the follow-up ticket in the summary if one exists), `needs-james` (a decision the human must make at the project->main PR). |

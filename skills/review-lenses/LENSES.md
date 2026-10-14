@@ -19,14 +19,16 @@ The scale is defined by **consequence and reversibility**, not by how strongly a
 | L | Local, cosmetic, or a judgment call with no lasting consequence. | Fixed silently. Never on the ledger. |
 
 **Tie-break rules (apply in order):**
-1. Irreversible beats reversible: if the same flaw is H when shipped to staging/prod, rate it H only when the diff
+1. Irreversible beats reversible (code review only; a plan is rated as it would ship, so rule 1's drop never applies to plans): if the same flaw is H when shipped to staging/prod, rate it H only when the diff
    actually reaches an environment that cannot cheaply roll it back (applied/pushed migration, proto field on `main`,
    public API). Inside an unmerged project branch with no applied side effects, drop one level (H -> M).
 2. A violation of a *written* standard (style guide, AGENTS.md, a `feedback_*` memory) is at least M. An *unwritten*
    preference is at most M, and is L when it is only taste.
 3. Count the blast radius, not the lines. One-line flaws in a shared helper outrank sprawling flaws in a leaf.
 4. If two levels both fit, choose the higher one only when rule 1 says irreversible; otherwise choose the lower one.
-5. Never rate on tone ("ugly", "confusing") alone. A finding must name the concrete failure or the written rule.
+5. One root cause appearing in several places or plan sections is one finding at its owning location; mark the rest
+   "same root as ..." and do not re-rate them.
+6. Never rate on tone ("ugly", "confusing") alone. A finding must name the concrete failure or the written rule.
 
 ## How to read a lens
 
@@ -141,6 +143,8 @@ user-authored content, secrets/env/config, storage/signed URLs, logging, or the 
 - User message content never appears in diagnostics: lengths and metadata, not previews. This includes logs, admin
   tooling, SQL examples in PR text.
 - Signed URL / host handling; trust of client-supplied IDs; injection (SQL, prompt, path).
+- Agent/LLM tools that take IDs from the model: they are endpoints. The model's input is untrusted (prompt injection),
+  so each needs the same ownership check as an RPC.
 - Test fixtures that grant themselves privileges that production would not.
 
 **Rubric:**
@@ -234,6 +238,26 @@ concept tied to an external vendor/provider; the plan names new schema or API fi
 
 ---
 
+## 8. correctness-lifecycle
+
+**Applies when:** the diff changes stateful flows (sessions, jobs, retries, close/finalize paths, reconcilers) or
+the plan describes one.
+
+**Check:** every created row/session has a path that finalizes it, including on failure after creation; ordering
+between competing writers (client, tool, webhook, worker) is defined; guards cannot make a repair/cleanup path dead;
+doc comments' guarantees ("exactly once") are actually true; idempotency on retry.
+
+**Rubric:**
+- H: data loss or double billing reachable in normal operation on a path that ships to a hosted environment.
+- M: orphaned state on a failure path; a path made unreachable by another change; a stated guarantee the code breaks.
+- L: narrow race with a graceful fallback; doc comment wording.
+
+**Read first:** the PR/epic description of the intended behaviour; tests around the flow.
+
+**Plan mode:** flag sections with state transitions that name no failure/cleanup path.
+
+---
+
 ## Lens selection cheatsheet (code-reviewer)
 
 | Diff contains | Lenses |
@@ -244,5 +268,6 @@ concept tied to an external vendor/provider; the plan names new schema or API fi
 | UI strings, emails, prompts | copy-style |
 | tests / e2e / CI scripts | verifiability-tests |
 | any new identifier naming a vendor | provider-agnostic-naming |
+| sessions, jobs, finalize/close/retry paths | correctness-lifecycle |
 
 A lens with no matching signal is skipped. When unsure, run it.

@@ -28,7 +28,10 @@ Split the plan on its headings (`##` and `###`). A *section* is a heading plus i
 (`S1`, `S2`, ...) and keep the heading text. Tiny sections (<3 lines) merge into their parent. Preserve the plan's
 own stream/task identifiers so the summary can cite them.
 
+Parent headings with only children (a one-line `## Data model` over `###` sections) fold into the first child.
+
 ### 2. Ground in the repo
+If the plan is already built, check claims against the plan's base commit, not today's tree.
 Read `AGENTS.md` and the style guides the lenses cite. Where a section proposes touching existing code, open the
 code. A plan section that says "extend X" is only rateable once you know what X is. Check claims against the repo:
 a section that depends on something that does not exist is an issue in itself (verifiability lens).
@@ -52,7 +55,10 @@ LENSES.md, the full plan, the repo pointers, and this contract:
    explicitly handled elsewhere in the plan is not an issue.
 4. Roll up each section to its **overall rating = max across lenses**, and a one-line **why** naming the lens(es) that
    set it.
-5. Order: H first, then M, each in document order. L and 0 sections are not listed individually.
+5. One root cause across sections is one bullet at its owning section; other sections say "same root as Sx". A section may list several lenses in one bullet, with secondary findings as sub-clauses.
+6. Items the plan routes to a human-blocker task are not issues, unless the decision itself is the human's to make (e.g. a vendor gate): then rate L and list it.
+7. Hand-run smoke tests that the repo's workflow assigns to the human are not verifiability issues.
+8. Order: H first, then M, each in document order. L and 0 sections are not listed individually.
 
 ## Output
 
