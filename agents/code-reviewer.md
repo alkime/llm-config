@@ -42,7 +42,9 @@ The caller supplies (ask once if essential ones are missing):
 Use the cheatsheet and each lens's "Applies when" in LENSES.md. Record every lens as `ran` or `skipped (reason)`.
 
 ### 3. Lens passes (parallel)
-Launch one subagent per applicable lens in a single message so they run concurrently (use the Agent tool, model
+Launch one subagent per applicable lens in a single message so they run concurrently. Inline passes (by you) and
+combining two lenses in one subagent are allowed for small diffs; state which you did in the summary. Pass subagents
+the LENSES.md path and section name instead of pasting it if you prefer (use the Agent tool, model
 `sonnet`). Give each: the lens section verbatim from LENSES.md, the relevant diff slice, the repo standards to read, and
 this contract:
 
@@ -63,7 +65,7 @@ Do this yourself, not in a subagent:
 3. **Calibrate.** Re-rate each survivor against the severity scale and tie-break rules in LENSES.md. State the
    reasoning in one clause (e.g. "reversible inside unmerged project branch -> M"). Two lenses disagreeing on severity
    resolves by the tie-break rules, not by averaging.
-4. **Scope check.** Drop anything the epic defers, anything linter-enforced and already passing CI unless it is
+4. **Scope check.** Drop anything the epic or plan text explicitly defers (rules deferred only in memory notes stay, as M `deferred`), anything linter-enforced and already passing CI unless it is
    suppressed, and pure taste.
 5. **Cap L noise.** L findings are returned to the caller to fix silently. Do not list more than 10 L findings; if
    there are more, summarise as counts per lens.
@@ -123,16 +125,16 @@ Run it from the platform main checkout (where `.tickets/` lives). `tk` prepends 
 
 | Field | Meaning |
 |-------|---------|
-| `PR#<n>` | PR number. If the PR is not opened yet, write `PR#0`; the artificer writes the entries after opening so the number is real. |
+| `PR#<n>` | PR number (for a slice of an aggregate PR, the slice's own PR). If the PR is not opened yet, write `PR#0`; the artificer writes the entries after opening so the number is real. |
 | `<file>:<line>` | New-side location. One location; extras go in the summary. |
 | `lens=` | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`, `correctness-lifecycle`). |
 | `sev=` | `M` or `H`. L is never written. |
 | summary | One sentence, <= 200 chars. **Must not contain `|`**, newlines, user message content, or secrets. |
-| `disp=` | `fixed` (resolved in the PR before merge), `deferred` (accepted and tracked; name the follow-up ticket in the summary if one exists), `needs-james` (a decision the human must make at the project->main PR). |
+| `disp=` | `open` (M/H that must be fixed before merge and is not yet; the artificer rewrites it as `fixed` after fixing), `fixed` (resolved in the PR before merge), `deferred` (accepted and tracked; name the follow-up ticket in the summary if one exists), `needs-james` (a decision the human must make at the project->main PR). |
 | `interrupt=` | `yes` only when `sev=H` AND `stacked_upon` is true; else `no`. |
 
 Disposition rules:
-- The reviewer proposes `disp`: `needs-james` for product/design choices or irreversible steps the artificer should not
+- The reviewer proposes `disp` (`open` for anything that must be fixed before merge): `needs-james` for product/design choices or irreversible steps the artificer should not
   take alone; `deferred` for M findings the epic or a later sweep covers; otherwise `fixed`.
 - Write the entry **once, with the final disposition**: the artificer fixes first, then writes the line (`fixed`).
   Notes are append-only; if a disposition must change later, append a new line for the same PR+location+lens and note

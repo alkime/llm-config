@@ -21,7 +21,9 @@ The scale is defined by **consequence and reversibility**, not by how strongly a
 **Tie-break rules (apply in order):**
 1. Irreversible beats reversible (code review only; a plan is rated as it would ship, so rule 1's drop never applies to plans): if the same flaw is H when shipped to staging/prod, rate it H only when the diff
    actually reaches an environment that cannot cheaply roll it back (applied/pushed migration, proto field on `main`,
-   public API). Inside an unmerged project branch with no applied side effects, drop one level (H -> M).
+   public API). Inside a branch that has not reached `main` and has no applied side effects (a PR merged into a project branch
+   counts as unreached until the project->main PR merges; an applied migration or deployed environment does not), drop
+   one level (H -> M).
 2. A violation of a *written* standard (style guide, AGENTS.md, a `feedback_*` memory) is at least M. An *unwritten*
    preference is at most M, and is L when it is only taste.
 3. Count the blast radius, not the lines. One-line flaws in a shared helper outrank sprawling flaws in a leaf.
@@ -29,6 +31,8 @@ The scale is defined by **consequence and reversibility**, not by how strongly a
 5. One root cause appearing in several places or plan sections is one finding at its owning location; mark the rest
    "same root as ..." and do not re-rate them.
 6. Never rate on tone ("ugly", "confusing") alone. A finding must name the concrete failure or the written rule.
+7. "Deferred" means deferred in the epic/plan text. A rule recorded only in a memory/sweep note (e.g. the
+   provider-agnostic rename sweep) does not exempt a finding: rate it M with `disp=deferred`.
 
 ## How to read a lens
 
