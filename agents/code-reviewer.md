@@ -22,6 +22,7 @@ The caller supplies (ask once if essential ones are missing):
 | base | branch the diff is measured against (project branch for stacked work, else main) |
 | epic | tk epic id for ledger writes (omit for dry-run) |
 | stacked_upon | `true` if other PRs stack on this one (foundation PR), else `false` (default) |
+| tier | `standard` (default) or `deep`; see Lens passes |
 | mode | `ledger` (default: write M/H to the epic) or `dry-run` (write nothing) |
 
 ## Process
@@ -43,13 +44,33 @@ Use the cheatsheet and each lens's "Applies when" in LENSES.md. Record every len
 
 ### 3. Lens passes
 
-Launch one subagent per applicable lens in a single message so they run concurrently (Agent tool, model `sonnet`).
-Inline passes are allowed when the caller asks; state in the summary which mode you used.
+Only the judge (you) runs on opus; lens subagents run on `sonnet`. `correctness-lifecycle` is never skipped in either
+tier (when its "applies when" matches).
+
+**Tier `standard` (default):**
+1. One sonnet subagent runs **every applicable lens except correctness-lifecycle** in a single pass, given each lens's
+   section from LENSES.md and the full diff.
+2. A dedicated sonnet subagent always runs correctness-lifecycle.
+3. Launch both in one message, then run the judge pass.
+
+**Tier `deep`:** one sonnet subagent per applicable lens, all launched in a single message, then the judge pass.
+Gather the diff and shared standards **once** and give every lens subagent an identical leading context block (diff,
+standards, contract below) with only the lens-specific instructions last, so prompt caching can apply. Deep-tier lens
+subagents read surrounding code only around the changed lines.
+
+**When to use deep:** the caller asks, or the PR is a foundation PR (`stacked_upon`), touches migrations/schema,
+touches auth/RBAC, or has more than ~800 changed lines. You may escalate `standard` to `deep` when you see one of
+these; say so in the summary.
+
+**Token reporting.** The summary records token usage per subagent and in total, and says whether each figure is
+measured (from the Agent tool's usage data) or estimated.
+
+Inline passes are allowed only when the caller asks; state which mode you used.
 
 **Subagent contract.** Give each: the LENSES.md path and its section name, the relevant diff slice, the repo standards to
 read, and:
 
-- Read the surrounding file, not only the hunk, before reporting.
+- Read the surrounding file (deep tier: only around the changed lines) before reporting.
 - If the target branch is not checked out in the working directory, every file read (including yours and the
   subagents') must be `git show "${branch}:path"`; plain Read sees the wrong tree. Say in the summary which read mode
   was used.

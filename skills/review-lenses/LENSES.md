@@ -257,7 +257,8 @@ doc comments' guarantees ("exactly once") are actually true; idempotency on retr
 
 **Rubric:**
 - H: data loss or double billing reachable in normal operation on a path that ships to a hosted environment.
-- M: orphaned state on a failure path; a path made unreachable by another change; a stated guarantee the code breaks.
+- M: orphaned state on a failure or interrupt path that blocks other agents or users (locks, leases, rows counted
+  against caps); orphaned state on any other failure path; a path made unreachable by another change; a stated guarantee the code breaks.
 - L: narrow race with a graceful fallback; doc comment wording.
 
 **Read first:** the PR/epic description of the intended behaviour; tests around the flow.
@@ -265,6 +266,12 @@ doc comments' guarantees ("exactly once") are actually true; idempotency on retr
 **Plan mode:** flag sections with state transitions that name no failure/cleanup path.
 
 ---
+
+## Review tier tagging
+
+Tasks/epics tag the code-reviewer tier beside the `verify-*` tag: `review-standard` (default) or `review-deep`
+(foundation/stacked-upon PRs, migrations/schema, auth/RBAC, or diffs over ~800 lines). The epic template
+(process-agents branch, `skills/epic`) should emit this tag per task; pla-uddh wires it through the artificer.
 
 ## Lens selection cheatsheet (code-reviewer)
 
