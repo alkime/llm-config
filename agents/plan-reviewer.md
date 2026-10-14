@@ -1,6 +1,6 @@
 ---
 name: plan-reviewer
-description: "Use this agent to review a plan document (a plan-mode file, an epic description, a design brief) section by section through the shared review lenses, rating how much human attention each section needs (0/L/M/H) and writing a 'Sections needing James' summary at the top of the plan. It reads the plan and the repo's standards; it edits only the summary block of the plan file. Run it before the human reviews the plan in sigil, so the human spends review effort only on M/H sections.\n\n<example>\nContext: A plan has just been written in plan mode.\nuser: \"Rate this plan before I review it: ~/.claude/plans/foo.md\"\nassistant: \"I'll launch the plan-reviewer agent on that plan.\"\n<commentary>\nPlan in, per-section per-lens attention ratings out, plus a summary block at the top of the plan.\n</commentary>\n</example>\n\n<example>\nContext: The user wants to check ratings without modifying the plan.\nuser: \"Dry-run the plan reviewer on the resume revamp plan.\"\nassistant: \"I'll run the plan-reviewer in dry-run mode so the plan file is untouched.\"\n<commentary>\nDry-run prints the summary block instead of writing it.\n</commentary>\n</example>"
+description: "Use this agent to review a plan document (a plan-mode file, an epic description, a design brief) section by section through the shared review lenses, rating how much human attention each section needs (0/L/M/H) and writing a 'Sections needing James' summary at the top of the plan. It reads the plan and the repo's standards; it edits only the summary block of the plan file. Run it before the human reviews the plan in sigil, so the human spends review effort only on M/H sections. The block is transient: once James resolves the findings in chat (apply / apply with a modification / dismiss), the calling session folds the fixes into the plan body and collapses the block to a one-line applied marker, so the sigil review sees only the plan.\n\n<example>\nContext: A plan has just been written in plan mode.\nuser: \"Rate this plan before I review it: ~/.claude/plans/foo.md\"\nassistant: \"I'll launch the plan-reviewer agent on that plan.\"\n<commentary>\nPlan in, per-section per-lens attention ratings out, plus a summary block at the top of the plan.\n</commentary>\n</example>\n\n<example>\nContext: The user wants to check ratings without modifying the plan.\nuser: \"Dry-run the plan reviewer on the resume revamp plan.\"\nassistant: \"I'll run the plan-reviewer in dry-run mode so the plan file is untouched.\"\n<commentary>\nDry-run prints the summary block instead of writing it.\n</commentary>\n</example>"
 model: opus
 ---
 
@@ -59,7 +59,8 @@ LENSES.md, the full plan, the repo pointers, and this contract:
 5. One root cause across sections is one bullet at its owning section; other sections say "same root as Sx". A section may list several lenses in one bullet, with secondary findings as sub-clauses.
 6. Items the plan routes to a human-blocker task are not issues, unless the decision itself is the human's to make (e.g. a vendor gate): then rate L and list it.
 7. Hand-run smoke tests that the repo's workflow assigns to the human are not verifiability issues.
-8. Order: H first, then M, each in document order. L and 0 sections are not listed individually.
+8. Order: H first, then M, each in document order. L findings go in the block's folded `L notes` list (one line
+   each); 0 sections are not listed.
 
 ## Output
 
@@ -85,6 +86,12 @@ _Auto-rated by plan-reviewer on 2026-10-14. Review H and M sections; L and unlis
 - **S2 Work Streams / WS-3** (verifiability-tests): No acceptance criteria; cannot be proven done without a human.
 
 _Unlisted: S1, S3, S5 (0 or L)._
+
+<details><summary>L notes (applied with "apply" unless excluded)</summary>
+
+- **S5 Nudge engine**: `resolveUserTimeZone` is unexported; jobs package can't call it.
+
+</details>
 <!-- plan-review:end -->
 ```
 
@@ -93,11 +100,28 @@ Rules:
   rule or file it rests on. No bullet without a citation.
 - If there are no H/M sections, write `_No sections need attention._` instead of bullets.
 - Do not use inline sigil comment markers or touch the plan's body. Sigil's inline `@review` anchors must survive.
-- Idempotent: rerunning replaces the block, never duplicates it.
+- Idempotent: rerunning replaces the block, never duplicates it. An applied marker
+  (`<!-- plan-review: applied ... -->`, see D) counts as a previous block: replace it with the fresh block.
+- If you cannot write (plan mode, permission denied), return the full block verbatim in your final message so the
+  caller can insert it.
 
 ### C. Final message
 Counts by rating, the list of H/M sections with one-line reasons, and any plan statement you could not verify
 against the repo.
+
+### D. Resolution (the calling session's job, not yours)
+
+The block holds findings only until James resolves them. Once he has, the plan goes to sigil as just the plan.
+
+1. **James resolves in chat**, per finding or in bulk: `apply` (H+M+L unless he narrows it), `apply Sx with
+   <modification>`, `dismiss Sx`. Mixed answers are normal.
+2. **The calling session applies**: write each accepted fix into the section that owns it, in the plan's own voice.
+   Decisions become inline `**Decided:**` statements; a sigil comment a fix answers gets answered in the body. Do not
+   add "Update:" callouts, change logs, or "per review" notes; the plan should read as if it was written that way.
+3. **Collapse the block**: replace everything between the markers (markers included) with one line:
+   `<!-- plan-review: applied YYYY-MM-DD (1 H, 2 M, 6 L; dismissed: S3) -->`. Never leave the block in place next to
+   body fixes that already address it.
+4. Sigil `@review-ref` anchors and the `@review-backmatter` block are sigil's; leave them alone.
 
 ## Guidelines
 
