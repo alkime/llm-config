@@ -18,9 +18,27 @@ Two tools, used together:
 (Replaces SimPilot, which needed the window frontmost, crashed on screenshots, and has
 been unmaintained since 2026-03.)
 
-## Critical: always pass the booted UDID
+## Critical: always pass an explicit UDID
 
-Every `axe` command requires `--udid`. Resolve it once:
+Every `axe` command requires `--udid`. Never run a simulator command without one.
+
+**Agents (worktrees, Penny repo): use the leased simulator only.** `scripts/sim-lease.sh`
+owns a dedicated `Penny Agent` simulator and a lock, so you never touch the simulator a
+human has booted:
+
+```bash
+export SIM_UDID="$(scripts/sim-lease.sh acquire)"   # exit 75 = held by someone else
+U="$SIM_UDID"
+# ... drive the app ...
+scripts/sim-lease.sh release
+```
+
+**Safety rule:** never run global simulator commands (`xcrun simctl shutdown all`,
+`erase all`, `delete all`, or any `simctl`/`axe` verb that is not pinned to `$SIM_UDID`),
+and never use "first booted". James's booted simulator is off limits. Do not boot,
+shut down or erase any simulator other than the leased one.
+
+**Humans / ad-hoc, main checkout only:** resolve the booted device once:
 
 ```bash
 U=$(xcrun simctl list devices booted -j | python3 -c 'import json,sys;d=json.load(sys.stdin)["devices"];print(next((x["udid"] for v in d.values() for x in v),""))')
@@ -28,7 +46,8 @@ echo "$U"   # empty → nothing booted
 ```
 
 Nothing booted? In the Penny repo, `./scripts/ensure-simulator.sh` boots the standard
-e2e device (iPhone 17, iOS 26.3). Otherwise `xcrun simctl boot "<name>"`.
+e2e device (iPhone 17, iOS 26.3); it honors `SIM_UDID`. Otherwise
+`xcrun simctl boot "<name>"`.
 
 ## Reading the screen
 
@@ -205,9 +224,12 @@ axe list-simulators                                  # all sims with UDIDs/state
 ## Penny specifics
 
 - Run the app: `make mobile-dev` (backgrounded) — `flutter run` against local Supabase
-  and the API on `127.0.0.1:8080` (`make dev` or `make compose-up`). "Flutter run key
+  and the API on `$MOBILE_API_BASE_URL` (`127.0.0.1:8080` in the main checkout, your
+  worktree's `PORT` elsewhere; see `make wt-ports`) (`make dev` or `make compose-up`). "Flutter run key
   commands." in the output means it's up; hot reload stays live.
-- Seed users first: `make seed-dev-data notebooks=1` → `admin@` / `james@` /
+- In a worktree, seed namespaced users instead: `make seed-dev-data namespace=<slug>`
+  (`<slug>-james@local.dev`, same password); never sign in as the shared fixtures.
+- Seed users first (main checkout): `make seed-dev-data notebooks=1` → `admin@` / `james@` /
   `george@local.dev`, password `LocalDev123!`, FTUX done, sample notebooks on James.
 - First sign-in shows a "Turn on notifications?" sheet → tap "Not now".
 - Home tabs: Ask / Circles / Pins; Memories (Notebooks / Chats / Saved) via
