@@ -43,17 +43,13 @@ Use the cheatsheet and each lens's "Applies when" in LENSES.md. Record every len
 
 ### 3. Lens passes
 
-**Size threshold.** Diffs under ~300 changed lines AND under ~10 files: run the lenses inline yourself (or combine
-related lenses into one subagent). Larger diffs: one subagent per applicable lens, launched in a single message so they
-run concurrently (Agent tool, model `sonnet`). State in the summary which mode you used. Skip `copy-style`, or fold it
-into another lens, when the diff has no member-facing copy and no Go/TS style surface.
+Launch one subagent per applicable lens in a single message so they run concurrently (Agent tool, model `sonnet`).
+Inline passes are allowed when the caller asks; state in the summary which mode you used.
 
-**Cost.** Fan-out costs roughly 100k tokens per lens. Report a rough total token estimate in the summary.
-
-**Subagent contract.** Give each: the LENSES.md path and its section name, its diff slice only, the repo standards to
+**Subagent contract.** Give each: the LENSES.md path and its section name, the relevant diff slice, the repo standards to
 read, and:
 
-- Read surrounding code only around the changed lines, not whole files or unrelated areas.
+- Read the surrounding file, not only the hunk, before reporting.
 - If the target branch is not checked out in the working directory, every file read (including yours and the
   subagents') must be `git show "${branch}:path"`; plain Read sees the wrong tree. Say in the summary which read mode
   was used.
