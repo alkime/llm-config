@@ -37,6 +37,7 @@ code. A plan section that says "extend X" is only rateable once you know what X 
 a section that depends on something that does not exist is an issue in itself (verifiability lens).
 
 ### 3. Lens passes (parallel)
+Passes may run inline for short plans, and a lens may be skipped for sections it plainly does not touch; say which in the final message.
 For each lens, launch one subagent (Agent tool, model `sonnet`), all in one message. Give each: the lens section from
 LENSES.md, the full plan, the repo pointers, and this contract:
 

@@ -109,7 +109,8 @@ proto messages/enums/fields, or the plan describes new entities, columns, or bac
 - **Migrations-first:** known schema work belongs in the epic's first task. Schema changes appearing mid-project in a
   non-foundation task are a smell; rewrites of an already-applied migration are a human-blocker (schema rewind).
 - Data movement (backfills, legacy copies) must be an out-of-band, dry-run-default, idempotent CLI, never a SQL
-  function in a migration or a startup job. Cleanup of old tables/columns must be safe if done many releases later.
+  function in a migration or a startup job. Cleanup of old tables/columns must be safe if done many releases later. Rebuilding *derived* data (embeddings,
+  search indexes, caches) that can always be regenerated is not a data copy and is exempt from the out-of-band rule.
 - Privileges/grants for API roles must not be in tracked migrations (local-only fixes go in the seed file).
 - Typed structs for JSON fields, not `map[string]any`; strict 1:1 config embedded as JSON rather than a unique-FK table.
 - Constraints enforced by the DB (unique/FK) instead of pre-check queries.
