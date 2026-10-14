@@ -104,42 +104,44 @@ in `dry-run` mode, print them and write nothing.
 ## Ledger format (v1)
 
 The Ledger is the durable record of review items that go to the project->main PR. It is stored as notes on the epic
-ticket. Other tools (the `pr` skill, the artificer) parse it, so the format is strict.
+ticket and parsed by the `pr` skill (`skills/pr/resources/LEDGER.md`, `render_ledger.py`), so the line shape is strict
+even though that parser is tolerant.
 
-Each entry is one `tk add-note` call whose text is **one line**: the literal prefix `Ledger: ` followed by a single
-JSON object with no newlines:
+Each entry is one `tk add-note` call whose text is **one line**:
 
-```bash
-tk add-note pla-ppz0 'Ledger: {"v":1,"pr":304,"loc":"api/internal/biz/voice.go:112","lens":"provider-agnostic-naming","sev":"M","summary":"Column elevenlabs_conversation_id names a generic concept after a vendor.","disposition":"deferred","interrupt":false}'
+```
+Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<M|H> | <summary> | disp=<fixed|deferred|needs-james> | interrupt=<yes|no>
 ```
 
-Run it from the platform main checkout (where `.tickets/` lives). `tk` prepends a timestamp line. Parsers
-find entries by matching lines that begin with `Ledger: ` and parsing the remainder as JSON.
+```bash
+tk add-note pla-ppz0 "Ledger: PR#304 | api/internal/biz/voice.go:112 | lens=provider-agnostic-naming | sev=M | Column elevenlabs_conversation_id names a generic concept after a vendor | disp=deferred | interrupt=no"
+```
 
-| Field | Type | Meaning |
-|-------|------|---------|
-| `v` | int | Format version, currently `1`. |
-| `pr` | int | PR number. If the PR is not yet opened, use `0` and the artificer rewrites it with a fresh note after opening. |
-| `loc` | string | `path:line` (new side). Single location; extra locations go in `summary`. |
-| `lens` | string | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`). |
-| `sev` | string | `M` or `H`. L is never written. |
-| `summary` | string | One sentence, no newlines, no double quotes unescaped, <= 200 chars. Must not contain user message content or secrets. |
-| `disposition` | string | `fixed` (resolved in the PR before merge), `deferred` (accepted, tracked for later, include the follow-up ticket id in `summary` if one exists), or `needs-james` (decision the human must make at the project->main PR). |
-| `interrupt` | bool | `true` only when `sev` is `H` AND `stacked_upon` is true. The caller must stop and tell James immediately. |
+Run it from the platform main checkout (where `.tickets/` lives). `tk` prepends a timestamp.
+
+| Field | Meaning |
+|-------|---------|
+| `PR#<n>` | PR number. If the PR is not opened yet, write `PR#0`; the artificer writes the entries after opening so the number is real. |
+| `<file>:<line>` | New-side location. One location; extras go in the summary. |
+| `lens=` | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`). |
+| `sev=` | `M` or `H`. L is never written. |
+| summary | One sentence, <= 200 chars. **Must not contain `|`**, newlines, user message content, or secrets. |
+| `disp=` | `fixed` (resolved in the PR before merge), `deferred` (accepted and tracked; name the follow-up ticket in the summary if one exists), `needs-james` (a decision the human must make at the project->main PR). |
+| `interrupt=` | `yes` only when `sev=H` AND `stacked_upon` is true; else `no`. |
 
 Disposition rules:
-- The reviewer proposes the disposition: `needs-james` for anything involving a product/design choice or an
-  irreversible step the artificer should not take alone; `deferred` for M findings the epic or a later sweep covers;
-  otherwise `fixed` is a *claim the artificer makes after fixing*.
-- The artificer finalises: after fixing, it appends a new line for the same `pr`+`loc`+`lens` with
-  `"disposition":"fixed"`. **The latest entry for a given `(pr, loc, lens)` wins.** Never edit or delete old notes.
-- If `interrupt` is true the reviewer's final message begins with `INTERRUPT:` and names the finding, so the caller
+- The reviewer proposes `disp`: `needs-james` for product/design choices or irreversible steps the artificer should not
+  take alone; `deferred` for M findings the epic or a later sweep covers; otherwise `fixed`.
+- Write the entry **once, with the final disposition**: the artificer fixes first, then writes the line (`fixed`).
+  Notes are append-only; if a disposition must change later, append a new line for the same PR+location+lens and note
+  "supersedes earlier entry" in the summary. The renderer does not dedupe, so avoid rewrites.
+- If `interrupt=yes`, the reviewer's final message begins with `INTERRUPT:` and names the finding, so the caller
   cannot miss it.
 
-Parsing recipe (for the `pr` skill):
+Parsing recipe:
 
 ```bash
-tk show <epic> | sed -n 's/^.*Ledger: //p' | jq -s 'group_by([.pr,.loc,.lens]) | map(last)'
+tk show <epic> | sed -n 's/^.*Ledger: //p' | awk -F' \\| ' '{print}'   # fields in the order above
 ```
 
 ## Guidelines
