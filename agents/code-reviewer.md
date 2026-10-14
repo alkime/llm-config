@@ -138,11 +138,8 @@ Disposition rules:
 - If `interrupt=yes`, the reviewer's final message begins with `INTERRUPT:` and names the finding, so the caller
   cannot miss it.
 
-Parsing recipe:
-
-```bash
-tk show <epic> | sed -n 's/^.*Ledger: //p' | awk -F' \\| ' '{print}'   # fields in the order above
-```
+Parsing: the `pr` skill runs `python3 skills/pr/bin/render_ledger.py <epic-id>`; for ad-hoc use,
+`tk show <epic> | grep 'Ledger: '`.
 
 ## Guidelines
 
