@@ -38,7 +38,7 @@ a section that depends on something that does not exist is an issue in itself (v
 
 ### 3. Lens passes (parallel)
 Passes may run inline for short plans, and a lens may be skipped for sections it plainly does not touch; say which in the final message.
-For each lens, launch one subagent (Agent tool, model `sonnet`), all in one message. Give each: the lens section from
+For each lens, launch one subagent (Agent tool, model `sonnet`), all in one message. Subagents return their report as their plain final message (no SubagentHandback or SendMessage). Give each: the lens section from
 LENSES.md, the full plan, the repo pointers, and this contract:
 
 - Rate **every** section `0`, `L`, `M`, or `H` for this lens, with a one-line rationale for anything above `0`.

@@ -41,19 +41,32 @@ The caller supplies (ask once if essential ones are missing):
 ### 2. Select lenses
 Use the cheatsheet and each lens's "Applies when" in LENSES.md. Record every lens as `ran` or `skipped (reason)`.
 
-### 3. Lens passes (parallel)
-Launch one subagent per applicable lens in a single message so they run concurrently. Inline passes (by you) and
-combining two lenses in one subagent are allowed for small diffs; state which you did in the summary. Pass subagents
-the LENSES.md path and section name instead of pasting it if you prefer (use the Agent tool, model
-`sonnet`). Give each: the lens section verbatim from LENSES.md, the relevant diff slice, the repo standards to read, and
-this contract:
+### 3. Lens passes
 
+**Size threshold.** Diffs under ~300 changed lines AND under ~10 files: run the lenses inline yourself (or combine
+related lenses into one subagent). Larger diffs: one subagent per applicable lens, launched in a single message so they
+run concurrently (Agent tool, model `sonnet`). State in the summary which mode you used. Skip `copy-style`, or fold it
+into another lens, when the diff has no member-facing copy and no Go/TS style surface.
+
+**Cost.** Fan-out costs roughly 100k tokens per lens. Report a rough total token estimate in the summary.
+
+**Subagent contract.** Give each: the LENSES.md path and its section name, its diff slice only, the repo standards to
+read, and:
+
+- Read surrounding code only around the changed lines, not whole files or unrelated areas.
+- If the target branch is not checked out in the working directory, every file read (including yours and the
+  subagents') must be `git show "${branch}:path"`; plain Read sees the wrong tree. Say in the summary which read mode
+  was used.
+- **Return the report as your plain final message.** Do not call SubagentHandback or SendMessage; the reviewer reads
+  each result from the Agent tool's own return value.
 - Report only issues in lines **added or changed by this diff** (plus pre-existing code the diff newly depends on or
   breaks). Pre-existing problems in untouched code are out of scope.
 - For each finding give: `file:line` (new-side line number), one-sentence summary, the exact quoted code, the rule it
-  violates (cite the doc or memory by name), the proposed severity from the lens rubric, and a suggested fix.
-- Prefer few, real findings over many speculative ones. If unsure, say "uncertain" and why; do not pad.
-- Read the surrounding file, not only the hunk, before reporting.
+  violates (cite the doc or memory by name), the proposed severity from the lens rubric, a suggested fix, and
+  `confidence: high|medium|uncertain`.
+- Prefer few, real findings over many speculative ones; do not pad.
+
+The judge maps `uncertain` to `medium` if verification supports the claim, and drops it if not.
 
 ### 4. Judge pass (you)
 Do this yourself, not in a subagent:
@@ -67,8 +80,8 @@ Do this yourself, not in a subagent:
    resolves by the tie-break rules, not by averaging.
 4. **Scope check.** Drop anything the epic or plan text explicitly defers (rules deferred only in memory notes stay, as M `deferred`), anything linter-enforced and already passing CI unless it is
    suppressed, and pure taste.
-5. **Cap L noise.** L findings are returned to the caller to fix silently. Do not list more than 10 L findings; if
-   there are more, summarise as counts per lens.
+5. **Cap L noise.** L findings are returned to the caller to fix silently. Do not list more than 10 L findings. Never merge findings
+   with different root causes to fit the cap: drop the lowest-value L findings instead and note how many were dropped.
 
 ## Output
 
@@ -103,7 +116,7 @@ the findings grouped H, M, L. Keep each to a line or two.
 
 ### C. Ledger lines
 The exact `Ledger:` lines for every M and H finding (never L), see the format below. In `ledger` mode, append them;
-in `dry-run` mode, print them and write nothing.
+in `dry-run` mode, print them (with the disposition the artificer would set; `open` is fine) and write nothing.
 
 ## Ledger format (v1)
 
@@ -136,9 +149,9 @@ Run it from the platform main checkout (where `.tickets/` lives). `tk` prepends 
 Disposition rules:
 - The reviewer proposes `disp` (`open` for anything that must be fixed before merge): `needs-james` for product/design choices or irreversible steps the artificer should not
   take alone; `deferred` for M findings the epic or a later sweep covers; otherwise `fixed`.
-- Write the entry **once, with the final disposition**: the artificer fixes first, then writes the line (`fixed`).
-  Notes are append-only; if a disposition must change later, append a new line for the same PR+location+lens and note
-  "supersedes earlier entry" in the summary. The renderer does not dedupe, so avoid rewrites.
+- The artificer may write `open` first and later append the `fixed` line, or write `fixed` once after fixing.
+  Notes are append-only, and `render_ledger.py` keeps the **latest entry per (PR, file:line, lens)**. To change a
+  disposition (e.g. `open` -> `fixed`), append a new line reusing exactly the same PR#, file:line and lens.
 - If `interrupt=yes`, the reviewer's final message begins with `INTERRUPT:` and names the finding, so the caller
   cannot miss it.
 

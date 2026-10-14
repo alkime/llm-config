@@ -78,7 +78,8 @@ adds dependencies, or the plan changes who calls whom.
 **Check:**
 - Layer violations (handler doing business logic, biz importing transport types, UI doing data shaping the API should).
 - Import direction and cycles; a low-level package gaining a dependency on a higher-level one.
-- Functions that take too many parameters/return too many values (repo limits), god structs.
+- Functions that take too many parameters/return too many values (repo limits), god structs. Count only domain parameters: `context.Context` and infrastructure dependencies (logger, clock) are
+  excluded, per the Go style guide #7.
 - Side effects hidden in constructors, init-time global state, migrations run implicitly at startup.
 - Shared mutable state between features; one feature reaching into another's internals.
 - Error handling that loses context at a boundary (unwrapped errors, swallowed errors).
@@ -144,6 +145,8 @@ user-authored content, secrets/env/config, storage/signed URLs, logging, or the 
 - Every new RPC declares its auth posture; public RPCs use the repo's explicit `unauthenticated` proto option, and
   anything without it is authenticated and authorized (role/permission or ownership check, not just "logged in").
 - Authorization on object access: caller must belong to the circle/owner of the object, checked server-side.
+- Config that is local-only but could reach a hosted environment by a manual push: check the repo docs/runbooks
+  first. If they say that push is never done (e.g. `supabase config push`), it is not a leak; rate L at most.
 - Secrets never in code, `.env` files, or logs; non-secret config in tracked config, secrets in the secret store.
 - User message content never appears in diagnostics: lengths and metadata, not previews. This includes logs, admin
   tooling, SQL examples in PR text.
