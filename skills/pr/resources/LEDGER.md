@@ -4,9 +4,13 @@ The Ledger is the set of review findings that artificers/code-reviewer could not
 
 ## Writing (done by code-reviewer / artificers)
 
+Canonical spec: `agents/code-reviewer.md` ("Ledger format (v1)"). This file mirrors it; if they disagree, the agent file wins.
+
 ```bash
-tk add-note <epic-id> "Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<L|M|H> | <summary> | disp=<fixed|deferred|needs-james> | interrupt=<yes|no>"
+tk add-note <epic-id> "Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<M|H> | <summary> | disp=<open|fixed|deferred|needs-james> | interrupt=<yes|no>"
 ```
+
+Dispositions: `open` = M/H that must be fixed before merge and is not yet (the artificer writes a superseding `fixed` entry once it lands); `fixed`; `deferred`; `needs-james`. Notes are append-only, so the renderer treats a later entry with the same PR + `file:line` + lens as superseding the earlier one. A PR of `PR#0` means not yet opened.
 
 Fields: PR number, `file:line`, lens name, severity (L/M/H), one-line summary, disposition, interrupt flag (set when a HIGH finding on a foundation PR interrupted James). Use `Smoke: <step>` notes to add steps to the smoke-test guide.
 
@@ -16,6 +20,7 @@ The format is owned by the code-reviewer agent; the renderer must not break if i
 - `|`-separated fields in any order, with or without `key=` prefixes (`sev=H`, `severity: high`, bare `[M]`/`H`).
 - Free text: PR via `#13`/`PR 13`/`PR#13`, location via `path/file.ext:line`, severity via `[H]`, `HIGH`, `sev=M`, or a bare `L`, disposition via the words fixed/deferred/needs-james, interrupt via the word "interrupt".
 - Several entries in one note as `- ` bullets or repeated `Ledger:` lines.
+- `open` is recognised only as an explicit `disp=open` (or a bare `open`/`unfixed` field), never mined from free text.
 - Anything unparseable still renders (summary = raw text, severity "Unrated", disposition "unspecified"). Entries are never dropped.
 - Non-ledger notes are ignored.
 
@@ -28,7 +33,7 @@ Trigger: the base is `main` AND the head branch is the epic's project branch (na
 1. Find the epic: `tk list -T epic` and match the project branch name in the epic body, or take the id from the user. Ask if ambiguous.
 2. Render: `python3 ${CLAUDE_SKILL_DIR}/bin/render_ledger.py <epic-id> > /tmp/claude/ledger.md` (run from the repo that owns the tickets).
 3. Compose the body: Summary (streams merged, from `gh pr list --state merged --base <project-branch>`), then the rendered `## Ledger` and `## Smoke-test guide`, then `## Before merging` (the e2e attestation reminder: James runs `make e2e` from the main checkout on this branch; open human-blocker tasks).
-4. Lead with Ledger items whose disposition is `needs-james`. An empty Ledger is stated explicitly ("No flagged review items.").
+4. The renderer puts a WARNING banner at the very top and an `UNRESOLVED (open)` table first when any `open` entries remain. In project->main mode, **warn loudly**: repeat the warning in your reply to the user, put the banner at the top of the PR body, and do not describe the PR as ready to merge; list the open items and suggest the artificer fix them (or the user decide) first. Then lead with `needs-james` items. An empty Ledger is stated explicitly ("No flagged review items.").
 5. `gh pr create --base main` / `gh pr edit --body-file`. Re-run and `gh pr edit` whenever new Ledger notes land; the body is regenerated, not hand-edited.
 
 Voice (`verify-voice`) tasks and simulator (`verify-full`) tasks are listed automatically as smoke items from task tags; seed steps come from the epic's `## Smoke-test guide (seed)` section.

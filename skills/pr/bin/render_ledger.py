@@ -22,9 +22,9 @@ DISPOSITIONS = {
     "fixed": "fixed", "fix": "fixed", "resolved": "fixed",
     "deferred": "deferred", "defer": "deferred", "followup": "deferred", "follow-up": "deferred",
     "needs-james": "needs-james", "needs_james": "needs-james", "needs james": "needs-james",
-    "james": "needs-james", "open": "needs-james",
+    "james": "needs-james", "open": "open", "unfixed": "open",
 }
-DISP_ORDER = {"needs-james": 0, "deferred": 1, "fixed": 2, "?": 3}
+DISP_ORDER = {"open": 0, "needs-james": 1, "?": 2, "deferred": 3, "fixed": 4}
 SEV_WORDS = {"high": "H", "medium": "M", "med": "M", "low": "L", "h": "H", "m": "M", "l": "L"}
 
 PR_RE = re.compile(r"(?:\bPR\s*#?|#)(\d+)", re.I)
@@ -97,7 +97,7 @@ def parse_entry(text):
             e["sev"] = SEV_WORDS[tok.lower()]
     if e["disp"] == "?":
         for word, norm in DISPOSITIONS.items():
-            if word in ("open", "james", "fix"):
+            if word in ("open", "james", "fix", "unfixed"):
                 continue
             if mine(r"\b" + re.escape(word) + r"\b", re.I):
                 e["disp"] = norm
@@ -132,6 +132,17 @@ def extract_ledger(notes_text):
     return [e for e in entries if e.strip()]
 
 
+def dedupe(entries):
+    """Notes are append-only: a later entry for the same PR + location + lens supersedes an earlier one
+    (e.g. `open` rewritten as `fixed`). Entries missing any of the three keys are never merged."""
+    last = {}
+    for i, e in enumerate(entries):
+        if e["pr"] and e["loc"] and e["lens"]:
+            last[(e["pr"], e["loc"], e["lens"])] = i
+    return [e for i, e in enumerate(entries)
+            if not (e["pr"] and e["loc"] and e["lens"]) or last[(e["pr"], e["loc"], e["lens"])] == i]
+
+
 def split_show(text):
     """Split `tk show` output into (frontmatter-less body, notes, children lines)."""
     sections = {}
@@ -153,42 +164,58 @@ def section(body, heading_re):
     return m.group(1).strip() if m else ""
 
 
+def table(rows):
+    out = ["| PR | Where | Lens | Sev | Finding | Disposition |",
+           "|----|-------|------|-----|---------|-------------|"]
+    for e in rows:
+        disp = e["disp"] if e["disp"] != "?" else "unspecified"
+        if e["interrupt"]:
+            disp += " (interrupted)"
+        cells = [("#" + e["pr"]) if e["pr"] else "-",
+                 ("`%s`" % e["loc"]) if e["loc"] else "-",
+                 e["lens"] or "-", e["sev"],
+                 (e["summary"] or "").replace("|", "\\|"),
+                 "**open**" if e["disp"] == "open" else disp]
+        out.append("| " + " | ".join(cells) + " |")
+    return out
+
+
 def render(epic_id, show_text, query_lines):
     secs = split_show(show_text)
-    entries = [parse_entry(t) for t in extract_ledger(secs.get("notes", ""))]
+    entries = dedupe([parse_entry(t) for t in extract_ledger(secs.get("notes", ""))])
     out = []
+    open_items = [e for e in entries if e["disp"] == "open"]
 
+    if open_items:
+        out.append("> **WARNING: %d UNRESOLVED review finding(s) are still `open`. Do not merge until fixed.**" % len(open_items))
+        out.append("")
     out.append("## Ledger")
     out.append("")
     if not entries:
         out.append("No flagged review items.")
     else:
         actionable = [e for e in entries if e["disp"] in ("needs-james", "?")]
+        if open_items:
+            out.append("**%d open (unresolved blockers, shown first).**" % len(open_items))
         out.append("%d item(s): %s." % (len(entries), ", ".join(
             "%d %s" % (n, SEV_NAME[s].lower()) for s in "HML?"
             for n in [sum(1 for e in entries if e["sev"] == s)] if n)))
         if actionable:
             out.append("**%d need your decision.**" % len(actionable))
         out.append("")
+        if open_items:
+            out.append("### UNRESOLVED (open): fix before merge")
+            out.append("")
+            out.extend(table(sorted(open_items, key=lambda e: (SEV_ORDER[e["sev"]], int(e["pr"] or 0)))))
+            out.append("")
         for sev in "HML?":
-            group = sorted((e for e in entries if e["sev"] == sev),
+            group = sorted((e for e in entries if e["sev"] == sev and e["disp"] != "open"),
                            key=lambda e: (DISP_ORDER[e["disp"]], int(e["pr"] or 0)))
             if not group:
                 continue
             out.append("### %s severity" % SEV_NAME[sev])
             out.append("")
-            out.append("| PR | Where | Lens | Finding | Disposition |")
-            out.append("|----|-------|------|---------|-------------|")
-            for e in group:
-                disp = e["disp"] if e["disp"] != "?" else "unspecified"
-                if e["interrupt"]:
-                    disp += " (interrupted)"
-                cells = [("#" + e["pr"]) if e["pr"] else "-",
-                         ("`%s`" % e["loc"]) if e["loc"] else "-",
-                         e["lens"] or "-",
-                         (e["summary"] or "").replace("|", "\\|"),
-                         disp]
-                out.append("| " + " | ".join(cells) + " |")
+            out.extend(table(group))
             out.append("")
 
     out.append("## Smoke-test guide")
