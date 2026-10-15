@@ -97,6 +97,35 @@ Every task body states: the stream/branch, base (so the artificer never has to i
 
 Print the epic id, the stream/branch/base table, the human-blocker list, and the first ready tasks. Do not launch artificers unless asked.
 
+### 9. Launch and supervise artificers (when asked)
+
+Launch one `artificer` per stream in a single message (background). Then this session is the **foreman**: artificers' own background waits don't reliably wake them, so stalls go unnoticed unless you watch. Run [`scripts/foreman.sh`](scripts/foreman.sh) from the project's main checkout:
+
+```bash
+~/.claude/skills/epic/scripts/foreman.sh <project-branch> <stream-branch>…
+```
+
+It prints one line per stream (head commit and age, PR state and base), one per sim-lease slot, and a last line `ALL MERGED` or `RUNNING`. Lines needing action start with `!`. Arm it with the Monitor tool (`timeout_ms` 1800000), emitting only new `!` lines and the finish:
+
+```bash
+F=~/.claude/skills/epic/scripts/foreman.sh; prev=""
+while true; do
+  out="$("$F" <project-branch> <stream-branch>… 2>&1)"
+  cur="$(grep '^!' <<<"$out" | sed 's/([0-9]*m ago)//; s/for [0-9]*s since/since/' | sort)"
+  comm -13 <(echo "$prev") <(echo "$cur")
+  prev="$cur"
+  grep -qx 'ALL MERGED' <<<"$out" && { echo "ALL MERGED"; break; }
+  sleep 300
+done
+```
+
+On each event, SendMessage the stream's artificer (and re-arm the Monitor whenever it expires, until `ALL MERGED`):
+- `! STALLED` (head unchanged 45m): ask for status. Is it blocked, waiting on something, or done and idle?
+- `! LEASE` (slot held 20m+): tell the holder to finish the sim step and release (`~/.claude/skills/ios-sim/sim-lease.sh release`) now.
+- `! REBASE` (stack parent merged): tell the child to rebase onto the parent's base per the Stacks rules.
+
+Thresholds: `FOREMAN_STALL_MIN`, `FOREMAN_LEASE_MIN`.
+
 ## Tags
 
 | Tag | Where | Meaning |

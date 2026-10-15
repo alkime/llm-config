@@ -22,15 +22,18 @@ been unmaintained since 2026-03.)
 
 Every `axe` command requires `--udid`. Never run a simulator command without one.
 
-**Agents (worktrees, Penny repo): use the leased simulator only.** `scripts/sim-lease.sh`
-owns a dedicated `Penny Agent` simulator and a lock, so you never touch the simulator a
-human has booted:
+**Agents (worktrees): use a leased simulator only.** [`sim-lease.sh`](sim-lease.sh) (next to
+this file, `~/.claude/skills/ios-sim/sim-lease.sh`) owns a small pool of dedicated `Agent Sim N`
+simulators (`SIM_LEASE_SLOTS`, default 2, max 4), one lock per slot, shared machine-wide across
+projects. It never touches the simulator a human has booted:
 
 ```bash
-export SIM_UDID="$(scripts/sim-lease.sh acquire)"   # exit 75 = held by someone else
+L=~/.claude/skills/ios-sim/sim-lease.sh
+export SIM_UDID="$($L acquire)"   # exit 75 = every slot held by someone else
 U="$SIM_UDID"
 # ... drive the app ...
-scripts/sim-lease.sh release
+$L release                        # as soon as the sim step is done; other streams are waiting
+$L status                         # one line per slot: free / holder + age / stale
 ```
 
 **Safety rule:** never run global simulator commands (`xcrun simctl shutdown all`,

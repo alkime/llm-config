@@ -8,19 +8,17 @@ Source: the first full epic run on the new pipeline (platform epics `pla-dfvy` a
 
 ### Foreman monitoring (orchestrator side)
 
-- [ ] **Make foreman monitoring a routine step in the `epic` skill**, or in a small companion section that covers launching artificers. Once the artificers launch, the orchestrator session runs a Monitor loop that polls:
-  - who owns the sim lease and how old it is (`~/.cache/pennyhelps/sim-lease/lock/owner`);
-  - each stream branch's head commit (`git ls-remote`);
-  - each stream PR's state (`gh pr view --json state,mergedAt,baseRefName`).
+- [ ] Platform: one-line pointer in `AGENTS.md`, pipeline step 3, to the epic skill's "Launch and supervise artificers" step.
 
-  It nudges an artificer (SendMessage) when that artificer has held the lease for more than ~20m with no new commit, when its stream's head hasn't moved for ~45m, or when its stack parent merges (the child must rebase). It re-arms after every event and stops when every stream PR has merged.
-  - **Why:** artificers' own background Monitor/wait calls didn't wake them. Circles held the lease for 67m and push-modes for 84m while everything sat idle until James asked "everything seems idle?".
-  - Platform side (not this repo): a `scripts/foreman.sh <project-branch> <stream>…` that prints one status line per stream, so the Monitor command stays short. A one-line pointer in platform `AGENTS.md`, pipeline step 3.
+### Sim lease
+
+- [ ] **Platform cutover to the shared `~/.claude/skills/ios-sim/sim-lease.sh`** (it has slots now: `SIM_LEASE_SLOTS`, default 2). `scripts/sim-lease.sh` becomes a one-line `exec` wrapper; repoint `AGENTS.md` and `docs/runbooks/worktree-verification.md` (which still describe the single `Penny Agent` sim). The old `Penny Agent` simulator can be deleted once nothing uses it.
+  - Prerequisite (in progress in platform, 2026-10-15): the sim `flutter run` targets pass `-d $SIM_UDID`. Without it, a second booted sim makes `flutter run` pick the wrong device.
 
 ### `agents/artificer.md`
 
 - [ ] **No background waits at the end of a turn.** Run verification in the foreground with explicit time caps (e.g. `timeout 900 make …`). Never end a turn while waiting on a background notification; the wake-up isn't reliable.
-- [ ] **Release the sim lease right after the sim step**, before code review, PR edits or anything else. The lease is shared by every stream.
+  - This also covers the reviewer hand-off from commit 5f14319: `artificer.md` step 3, `code-reviewer.md` and `plan-reviewer.md` all wait on report files with the Monitor tool, which is the same mechanism that failed here. Switch them to a foreground Bash until-loop with `timeout` (e.g. `timeout 1800 bash -c 'until [ -f "$f" ]; do sleep 10; done'`).
 - [ ] **Epic notes (`Ledger:`, `Smoke:`) go only in the main checkout**, the project branch at the repo root (`tk add-note` run there, then commit and push). Writing them in a stream worktree commits `.tickets/` changes on the stream branch, which conflicts at merge time. This happened in three of the four streams.
 - [ ] **Squash-merge rebase rule for stacks.** When the parent PR squash-merges, rebase the child with `git rebase --onto <new-base> <old-parent-ref>`. If the parent was itself rebased before it was squashed, `<old-parent-ref>` must be the child's **original fork commit** (from `git merge-base` taken before the parent moved, or from the reflog), not the parent's final head. Otherwise the rebase replays the parent's pre-squash commits and conflicts. The digest stream hit this and recovered by using fork commit 5bc8291.
 - [ ] Possibly: an artificer that finishes a stream should report once and stop. The digest artificer sent a duplicate idle report after its work was done.
@@ -31,7 +29,7 @@ Source: the first full epic run on the new pipeline (platform epics `pla-dfvy` a
 
 ### Not now
 
-- FIFO queue for the sim lease. A single lease plus prompt release plus foreman nudges should be enough; revisit only if contention persists.
+- FIFO queue for the sim lease. Lease slots plus prompt release plus foreman nudges should be enough; revisit only if contention persists.
 
 ## Calibration round 2
 

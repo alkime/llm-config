@@ -16,7 +16,7 @@ References (read, do not restate): the verification runbook `docs/runbooks/workt
 - **Never touch `:8080`/`:5173`** or any process you did not start. Your ports are in `.env.worktree` (`make wt-ports`).
 - **Shared Supabase is James's.** Never `supabase db reset` / `make supabase-reset`, never `supabase config push`, never edit `.env` files.
 - **Never merge into `main`.** You merge only into the project branch (or stack parent).
-- Clean up what you start: `make compose-down`, `scripts/sim-lease.sh release`.
+- Clean up what you start: `make compose-down`, `~/.claude/skills/ios-sim/sim-lease.sh release`.
 
 ## Workflow
 
@@ -53,7 +53,7 @@ Before the PR (and before any update push), run once: `make check`. Then the tie
 |-----|------------------------------|
 | `verify-cursory` | nothing |
 | `verify-integration` | `make compose-up` (background) on your ports; `make seed-dev-data namespace=<slug>`; `INTEGRATION=1` tests for the touched packages; API checks against `http://localhost:$PORT` signed in as `<slug>-james@local.dev` (never `admin@`/`james@`/`george@local.dev`); then `make compose-down` |
-| `verify-full` | the integration steps, then an ios-sim smoke: `export SIM_UDID="$(scripts/sim-lease.sh acquire)"` (exit 75 = held, wait/retry later or report), `make mobile-dev`, drive with the `ios-sim` skill using only `$SIM_UDID`, then `scripts/sim-lease.sh release` |
+| `verify-full` | the integration steps, then an ios-sim smoke: `export SIM_UDID="$(~/.claude/skills/ios-sim/sim-lease.sh acquire)"` (a pool of slots shared by every stream; exit 75 = all held, wait/retry later or report), `make mobile-dev`, drive with the `ios-sim` skill using only `$SIM_UDID`, then `~/.claude/skills/ios-sim/sim-lease.sh release` **right after the sim step**, before code review, PR edits or anything else |
 | `verify-voice` | do not attempt live duplex. Run whatever other tier the task also carries, and append a `Smoke:` note to the epic describing the voice check for James |
 
 Fix failures and re-verify. Never close a task or open a PR with failing checks. Tests that cannot run because of shared-database state you must not change (drift, schema rewind) become a note on the PR and, if material, a `human-blocker` task.
