@@ -5,7 +5,7 @@ description: Pull the screenshots James pasted into a Claude Code session out of
 
 # Session images
 
-Claude Code never writes pasted images to disk as files. They live base64-encoded inside the session transcript, `~/.claude/projects/<project-dir>/<session-id>.jsonl`. `extract.sh` decodes them.
+Claude Code also saves pasted images as `/private/tmp/claude-501/<project-dir>/<session-id>/images/<n>.png` (the path appears in the message). That copy is in `/tmp` and is gone after a reboot. The lasting copy is base64-encoded inside the session transcript, `~/.claude/projects/<project-dir>/<session-id>.jsonl`, and `extract.sh` decodes it, so it works for any session.
 
 ```zsh
 ~/.claude/skills/session-images/extract.sh                 # current session
