@@ -59,9 +59,7 @@
       "Read(.env)",
       "Read(.env.*)"
     ],
-    "ask": [
-      "Bash(gh pr merge *)"
-    ],
+    "ask": [],
     "additionalDirectories": [
       "/Users/jamcmdr/Library/Caches/ms-playwright",
       "/Users/jamcmdr/Library/Caches/go-build",
@@ -78,7 +76,16 @@
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true
+    "pyright-lsp@claude-plugins-official": true,
+    "pathpoint@outline-insurance": true
+  },
+  "extraKnownMarketplaces": {
+    "outline-insurance": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/outline-insurance/mcp.git"
+      }
+    }
   },
   "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",
