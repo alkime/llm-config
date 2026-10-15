@@ -5,7 +5,7 @@ James's Claude Code configuration. `agents/`, `commands/`, `skills/`, `shared/` 
 ## Layout
 
 - `agents/`: the hands-off pipeline agents: `artificer`, `code-reviewer`, `plan-reviewer`.
-- `skills/`: user skills (`epic`, `pr`, `sigil`, `ios-sim`, …). `skills/synced/` is written by Claude Code itself (it syncs James's claude.ai account skills here, because `~/.claude/skills` points into this repo); don't hand-edit it.
+- `skills/`: user skills (`epic`, `pr`, `sigil`, `ios-sim`, …). `skills/synced/` is written by Claude Code itself (it syncs James's claude.ai account skills here, because `~/.claude/skills` points into this repo); don't hand-edit it. `skills/herdr/SKILL.md` is vendored from `herdr --skill` (matched to the installed binary); after upgrading herdr, regenerate it with `herdr --skill > skills/herdr/SKILL.md` rather than editing it.
 - `shared/review-lenses/LENSES.md`: the lens catalog shared by both reviewers.
 - `commands/`: slash commands.
 - `archive/`: retired agents and skills, kept for reference.
