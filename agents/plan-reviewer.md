@@ -38,9 +38,18 @@ a section that depends on something that does not exist is an issue in itself (v
 
 ### 3. Lens passes (parallel)
 Passes may run inline for short plans, and a lens may be skipped for sections it plainly does not touch; say which in the final message.
-For each lens, launch one subagent (Agent tool, model `sonnet`), all in one message. Subagents return their report as their plain final message (no SubagentHandback or SendMessage). Give each: the lens section from
-LENSES.md, the full plan, the repo pointers, and this contract:
+For each lens, launch one subagent (Agent tool, model `sonnet`), all in one message.
 
+Subagents run in the background, and a report sent as a message reaches you only if you are still running when it
+arrives. So the hand-off goes through files, the same way as in `code-reviewer.md` ("Run directory and hand-off"):
+- Create `<scratchpad>/plan-review-<YYYYmmdd-HHMMSS>/` and give each subagent its path, `<run-dir>/<lens>.md`.
+- Don't end your turn while they run. Wait for every file with the Monitor tool (an until-loop, 20-minute timeout).
+- Resume any lens that's still missing once by SendMessage; after that, record it as failed.
+- Read the reports from the files, never from messages.
+
+Give each subagent the lens section from LENSES.md, the full plan, the repo pointers, and this contract:
+
+- Write your full report to the path the reviewer gave you, then end with a final message containing only that path.
 - Rate **every** section `0`, `L`, `M`, or `H` for this lens, with a one-line rationale for anything above `0`.
 - The scale means *how much human attention the section deserves for this lens*, using the shared severity scale: H
   means a mistake here is hard to undo or would break other work; M a documented-standard violation or likely rework;
