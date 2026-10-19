@@ -18,7 +18,7 @@ Converts an approved plan (plan mode output, usually sigil-reviewed) into a `tk`
 
 ### 1. Optional: plan-reviewer pass
 
-Offer (or run, if the user asked) the `plan-reviewer` agent on the plan before ticketing. It rates each plan section 0/L/M/H by lens and writes a "Sections needing James" summary. Only M/H sections need human attention; fix those in the plan first. Skip for small plans (S-sized streams, no schema, no new API surface). Never ticket from a plan with unresolved M/H sections: a `plan-review:start` block still in the plan means unresolved; a one-line `plan-review: applied` marker means resolved (see the agent's "Resolution" section).
+Offer (or run, if the user asked) the `plan-reviewer` agent on the plan before ticketing, ideally before James reads it. It sorts findings into author fixes (applied without asking James) and asks (callouts in the sections where James must decide), then the plan opens in sigil beside the chat. Follow the agent's "Resolution" section. Skip for small plans (S-sized streams, no schema, no new API surface). Never ticket from a plan with unresolved findings: a `plan-review:start` block or any `plan-review:ask` callout still in the plan means unresolved; a one-line `plan-review: applied` marker means resolved.
 
 ### 2. Decompose into streams
 
