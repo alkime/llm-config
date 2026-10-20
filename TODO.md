@@ -34,3 +34,20 @@ Source: the first full epic run on the new pipeline (platform epics `pla-dfvy` a
 ## Calibration round 2
 
 - [ ] Fold the items above into the calibration round for the plan-reviewer and code-reviewer (see the platform memory note `project_process_upgrades`, pilot epic `pla-nl2e`), or land them first. Decide which.
+
+## Hunk: ledger-focused view for the project->main review
+
+Goal: on the big project->main merges, open Hunk showing only the files the Ledger flags, so the large unflagged files stay out of the way. The Hunk skills are in `skills/hunk-review/` and `skills/hunk-extensions/` (not yet committed).
+
+- [ ] **Step 1, no new code: end the review with a filtered reload.** After writing the Ledger lines, the code-reviewer (or whoever runs the project->main pass) reloads the open Hunk session with git pathspecs. It lists the Ledger files, or excludes the noise:
+  ```bash
+  hunk session reload --repo . -- diff main...HEAD -- <ledger files...>
+  hunk session reload --repo . -- diff main...HEAD -- . ':!**/*.lock' ':!path/to/generated'
+  ```
+  Limitations: excluded files leave the session entirely, with no toggle to bring them back (reload again without the pathspec), and it needs a live session (`hunk session list`). Not yet tried with `:!` exclusions, so check that Hunk passes them through to git. Also decide where it lives: a step in `agents/code-reviewer.md` Output, or in the final project->main review step instead.
+- [ ] **Step 2, if step 1 proves useful: a small Hunk extension driven by the Ledger.** The reviewer writes a focus file (e.g. `.review/focus.json`: path, severity, reason per Ledger item). The extension's `hunk.transformChangeset` reads it and puts the Ledger files first, labelled with their severity (`[H] auth.ts`), and hides the rest behind a key that brings them back. It reloads when the file changes (`ctx.review.requestReload()`). Build it with the `hunk-extensions` skill. That keeps unflagged files one key away instead of gone.
+- Not this: writing "read" entries into hunk-mark-read's state (`~/.local/state/hunk-mark-read/sessions/*.jsonl`). Its keys include a hash of each file's diff under the extension's own normalisation rules, which is fragile to copy.
+
+## Dev process: move to herdr + ttt + hunk
+
+- [ ] **Pass over the dev process for the new tooling stack.** I'm moving from sigil + nvim + tmux to herdr + ttt + hunk. Go through the files that encode the dev process and rewrite them for the new stack: which tool does each job (diff review, plan/doc review, panes and agent sessions), and how agents hand work to me in it. Files that mention sigil today: `skills/sigil/SKILL.md` (whole skill), `agents/plan-reviewer.md` (11 mentions; it opens plans in sigil in a herdr pane), `agents/artificer.md` (3), `skills/epic/SKILL.md` (2), `skills/pr/resources/OPEN.md` (1, the `.sigil/review-order.yaml` step), and `CLAUDE.md` (1). Decide per mention whether hunk replaces it (PR/diff review: notes, reading order, `review-order.yaml`) or sigil stays for Markdown/plan review. Then commit `skills/hunk-review/` and `skills/hunk-extensions/`, and check `skills/herdr/SKILL.md` still matches the new layout.
