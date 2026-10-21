@@ -74,7 +74,7 @@ When the stream's tasks are done (or the epic says to PR per task) and `make che
      `tk add-note <epic-id> "Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<M|H> | <summary> | disp=fixed | interrupt=<no|yes>"`.
      Format and dispositions are defined in `code-reviewer.md` (Ledger format v1); `render_ledger.py` keeps the latest entry per PR + file:line + lens, so a mismatched key leaves the `open` line standing and the project->main PR will flag it.
 5. If you changed code in step 4, re-run `make check` (and the tier if the change touched what it exercised), commit, push. Re-run the reviewer only if M/H fixes were substantial; otherwise state in the PR that fixes followed review.
-6. When verification and review are green: `gh pr ready <n>` then merge into the PR's base (`gh pr merge <n> --squash`, keep the branch if other branches stack on it). Never merge into `main`. After a stack parent merges, retarget and rebase its child per the epic's stack rules.
+6. **Merge gate.** Commit everything first, including the task closes (`tk close` in the worktree), and push. Then, on a clean tree, run `make check` as its own command, never chained with commit, push or merge. Merge only once you've seen it exit 0 on that exact HEAD. Any commit after it, even a revert, a reformat or a ticket change, means running it again. Then `gh pr ready <n>` and merge into the PR's base (`gh pr merge <n> --squash`, keep the branch if other branches stack on it). Never merge into `main`. After a stack parent merges, retarget and rebase its child per the epic's stack rules.
 
 `.sigil/review-order.yaml` schema (any other shape is silently ignored):
 ```yaml
