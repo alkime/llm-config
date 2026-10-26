@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Open the plan belonging to the Claude Code session in a herdr pane in
+# plannotator-tui, delivering annotations back to that pane.
+#
+# pane -> claude pid (herdr pane process-info)
+#      -> session id (~/.claude/sessions/<pid>.json)
+#      -> transcript (~/.claude/projects/*/<session id>.jsonl)
+#      -> slug (every transcript line carries it)
+#      -> ~/.claude/plans/<slug>.md
+#
+# Usage: claude-plan-review [pane-id]   (default: herdr's active pane)
+set -euo pipefail
+
+# Run from a herdr key, stderr goes nowhere; keep a log.
+log=~/.cache/claude-plan-review.log
+mkdir -p "${log%/*}"
+exec 2> >(tee -a "$log" >&2)
+echo "$(date '+%F %T') start args=[$*] active_pane=${HERDR_ACTIVE_PANE_ID:-} pane=${HERDR_PANE_ID:-}" >&2
+
+die() { echo "claude-plan-review: $*" >&2; exit 1; }
+
+pane=${1:-${HERDR_ACTIVE_PANE_ID:-}}
+if [[ -z $pane ]]; then
+  pane=$(herdr pane list | jq -r '[.result.panes[] | select(.focused and .agent == "claude")][0].pane_id // empty')
+fi
+[[ -n $pane ]] || die "no pane given and no focused claude pane"
+
+pid=$(herdr pane process-info --pane "$pane" \
+  | jq -r '[.result.process_info.foreground_processes[] | select(.argv0 == "claude")][0].pid // empty')
+[[ -n $pid ]] || die "no claude process in pane $pane"
+
+session_file=~/.claude/sessions/$pid.json
+[[ -f $session_file ]] || die "no session registry entry for pid $pid"
+session_id=$(jq -r .sessionId "$session_file")
+
+transcript=$(ls ~/.claude/projects/*/"$session_id".jsonl 2>/dev/null | head -1)
+[[ -n $transcript ]] || die "no transcript for session $session_id"
+
+slug=$(grep -o '"slug":"[^"]*"' "$transcript" | tail -1 | cut -d'"' -f4)
+[[ -n $slug ]] || die "no slug in $transcript"
+
+plan=~/.claude/plans/$slug.md
+[[ -f $plan ]] || die "session has no plan yet ($plan)"
+
+# Herdr key commands don't get HERDR_ENV, and plannotator-tui refuses to run without it.
+HERDR_ENV=1 exec plannotator-tui herdr open "$plan" --deliver-to "$pane"
