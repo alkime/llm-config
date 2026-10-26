@@ -77,13 +77,20 @@
     "gopls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
-    "pathpoint@outline-insurance": true
+    "pathpoint@outline-insurance": true,
+    "ponytail@ponytail": true
   },
   "extraKnownMarketplaces": {
     "outline-insurance": {
       "source": {
         "source": "git",
         "url": "https://github.com/outline-insurance/mcp.git"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "dietrichgebert/ponytail"
       }
     }
   },
