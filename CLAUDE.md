@@ -1,6 +1,6 @@
 # llm-config
 
-James's Claude Code configuration. `agents/`, `commands/`, `skills/`, `shared/` and `claude-global-settings.json` (as `settings.json`) are symlinked into `~/.claude`, so edits here go live in every session immediately.
+James's Claude Code configuration, plus the configs of the terminal tools around it (herdr, plannotator-tui, ttt). `agents/`, `commands/`, `skills/`, `shared/` and `claude-global-settings.json` (as `settings.json`) are symlinked into `~/.claude`, and the files under `dot-config/` into `~/.config`, so edits here go live immediately. `install.sh` creates the links; it is safe to re-run.
 
 ## Layout
 
@@ -9,6 +9,8 @@ James's Claude Code configuration. `agents/`, `commands/`, `skills/`, `shared/` 
 - `shared/review-lenses/LENSES.md`: the lens catalog shared by both reviewers.
 - `commands/`: slash commands.
 - `archive/`: retired agents and skills, kept for reference.
+- `dot-config/`: a tracked subset of `~/.config`, linked file by file (`dot-config/herdr/config.toml` → `~/.config/herdr/config.toml`). The rest of those directories is the tools' own state (sockets, logs, sessions, plugin checkouts) and stays out of the repo. To track another file, move it here and re-run `install.sh`. herdr plugins aren't tracked as files; reinstall them with `herdr plugin install plannotator/herdr-annotate` and `herdr plugin install eugenioenko/ttt/herdr-plugin`.
+- `scripts/`: helpers, e.g. `claude-plan-review` (herdr `prefix+i`: opens the focused Claude session's plan in plannotator-tui).
 
 ## TODO.md
 

@@ -1,0 +1,57 @@
+onboarding = false
+
+[theme]
+name = "nord"
+auto_switch = false
+
+[experimental]
+kitty_graphics = true
+
+
+[keys]
+edit_scrollback = "prefix+shift+e"
+
+[[keys.command]]
+key = "prefix+e"
+type = "shell"
+command = "herdr plugin pane open --plugin ttt.editor --entrypoint editor"
+description = "open TTT editor"
+
+# Plannotator
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "annotate.capture"
+description = "annotate text"
+
+[[keys.command]]
+key = "prefix+shift+a"
+type = "plugin_action"
+command = "annotate.copy-context"
+description = "copy annotations as context"
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "annotate.manage"
+description = "manage annotations"
+
+# Document review (plannotator-tui)
+[[keys.command]]
+key = "prefix+o"
+type = "plugin_action"
+command = "annotate.open"
+description = "review documents in this folder"
+
+[[keys.command]]
+key = "prefix+shift+o"
+type = "plugin_action"
+command = "annotate.last"
+description = "review the agent's last reply"
+
+
+[[keys.command]]
+key = "prefix+i"
+type = "shell"
+command = "/Users/jamcmdr/dev/alkime/llm-config/scripts/claude-plan-review"
+description = "review this Claude session's plan"
