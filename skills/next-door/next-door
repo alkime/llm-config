@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Print the pane ID of the "next-door" pane: the terminal pane sharing a herdr
+# tab with the given pane (usually a Claude session).
+#
+# Choice, first match wins:
+#   1. a pane in the tab labelled "next-door"
+#   2. the only pane in the tab with no agent in it
+#
+# Usage: next-door [--idle] [pane-id]   (default: $HERDR_PANE_ID, else the active pane)
+#   --idle  also require the shell to be at its prompt (nothing in the foreground)
+# Exits 1 with a reason on stderr when there is no such pane.
+set -euo pipefail
+
+die() { echo "next-door: $*" >&2; exit 1; }
+
+idle=0
+if [[ ${1:-} == --idle ]]; then idle=1; shift; fi
+pane=${1:-${HERDR_PANE_ID:-${HERDR_ACTIVE_PANE_ID:-}}}
+[[ -n $pane ]] || die "no pane given and not inside herdr"
+
+tab=$(herdr pane get "$pane" | jq -r .result.pane.tab_id)
+nd=$(herdr pane list | jq -r --arg tab "$tab" --arg self "$pane" '
+  [.result.panes[] | select(.tab_id == $tab and .pane_id != $self)] as $p
+  | [$p[] | select(.agent == null)] as $shells
+  | [$p[] | select(.label == "next-door")][0].pane_id
+    // (if ($shells | length) == 1 then $shells[0].pane_id else empty end)
+    // empty')
+[[ -n $nd ]] || die "no next-door pane in tab $tab"
+
+if (( idle )); then
+  herdr pane process-info --pane "$nd" | jq -e \
+    '.result.process_info | .foreground_process_group_id == .shell_pid' >/dev/null \
+    || die "$nd is busy (something is running in the foreground)"
+fi
+echo "$nd"

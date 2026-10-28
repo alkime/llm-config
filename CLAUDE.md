@@ -10,7 +10,8 @@ James's Claude Code configuration, plus the configs of the terminal tools around
 - `commands/`: slash commands.
 - `archive/`: retired agents and skills, kept for reference.
 - `dot-config/`: a tracked subset of `~/.config`, linked file by file (`dot-config/herdr/config.toml` → `~/.config/herdr/config.toml`). The rest of those directories is the tools' own state (sockets, logs, sessions, plugin checkouts) and stays out of the repo. To track another file, move it here and re-run `install.sh`. herdr plugins aren't tracked as files; reinstall them with `herdr plugin install plannotator/herdr-annotate` and `herdr plugin install eugenioenko/ttt/herdr-plugin`.
-- `scripts/`: helpers, e.g. `claude-plan-review` (herdr `prefix+i`: opens the focused Claude session's plan in plannotator-tui).
+- `scripts/`: helpers, e.g. `claude-plan-review` (herdr `prefix+i`: opens the focused Claude session's plan in plannotator-tui, in the next-door pane when there is an idle one).
+- `skills/next-door/`: the shell pane beside a Claude pane in the same herdr tab (labelled `next-door`, or the tab's only non-agent pane). Its `next-door` script resolves the pane ID; use it in any tooling that opens something beside a Claude session, rather than splitting the Claude pane.
 
 ## TODO.md
 

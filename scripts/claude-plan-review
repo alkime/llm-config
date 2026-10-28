@@ -36,11 +36,39 @@ session_id=$(jq -r .sessionId "$session_file")
 transcript=$(ls ~/.claude/projects/*/"$session_id".jsonl 2>/dev/null | head -1)
 [[ -n $transcript ]] || die "no transcript for session $session_id"
 
-slug=$(grep -o '"slug":"[^"]*"' "$transcript" | tail -1 | cut -d'"' -f4)
+slug=$(grep -o '"slug":"[^"]*"' "$transcript" | tail -1 | cut -d'"' -f4 || true)
 [[ -n $slug ]] || die "no slug in $transcript"
 
 plan=~/.claude/plans/$slug.md
 [[ -f $plan ]] || die "session has no plan yet ($plan)"
 
+# If the tab has an idle next-door shell pane, review there instead of splitting
+# the Claude pane in two. `plannotator-tui herdr pane` is what herdr's plugin
+# pane runs; it takes the file and delivery target from the environment, and on
+# quit the pane drops back to its shell.
+nd=$(~/.claude/skills/next-door/next-door --idle "$pane" 2>/dev/null || true)
+if [[ -n $nd ]]; then
+  echo "reviewing in next-door pane $nd" >&2
+  herdr pane run "$nd" "PLANNOTATOR_TUI_FILE=$(printf %q "$plan") PLANNOTATOR_TUI_DELIVER_TO=$pane plannotator-tui herdr pane" >/dev/null
+  # herdr focuses by direction, not ID; work out which side the pane is on.
+  dir=$(herdr pane layout --pane "$pane" | jq -r --arg a "$pane" --arg b "$nd" '
+    .result.layout.panes as $p
+    | ([$p[] | select(.pane_id == $a)][0].rect) as $s
+    | ([$p[] | select(.pane_id == $b)][0].rect) as $n
+    | if   $n.x >= $s.x + $s.width  then "right"
+      elif $n.x + $n.width <= $s.x  then "left"
+      elif $n.y >= $s.y + $s.height then "down"
+      else "up" end')
+  exec herdr pane focus --pane "$pane" --direction "$dir" >/dev/null
+fi
+
+# Otherwise, if the tab is already split (a busy next-door pane, or several
+# shells and none labelled), another split would squish it; use a popup.
+placement=$(plannotator-tui config 2>/dev/null | sed -n 's/^placement = "\(.*\)"/\1/p')
+tab=$(herdr pane get "$pane" | jq -r .result.pane.tab_id)
+if (( $(herdr pane list | jq --arg t "$tab" '[.result.panes[] | select(.tab_id == $t)] | length') > 1 )); then
+  placement=popup
+fi
+
 # Herdr key commands don't get HERDR_ENV, and plannotator-tui refuses to run without it.
-HERDR_ENV=1 exec plannotator-tui herdr open "$plan" --deliver-to "$pane"
+HERDR_ENV=1 exec plannotator-tui herdr open "$plan" --deliver-to "$pane" --placement "${placement:-split}"
