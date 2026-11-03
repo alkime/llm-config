@@ -65,26 +65,15 @@ One commit per task, `Closes: <task-id>` in the body, then immediately `tk close
 When the stream's tasks are done (or the epic says to PR per task) and `make check` + tier verification are green:
 
 1. Push (`git push -u origin <branch>`) and open a **draft** PR with `gh pr create --draft --base <stream base from the epic>` (project branch, or the stack parent). Use the `pr` skill (`pr:open`) for the description, including "Stack: based on ..." for stack children.
-2. Write `.sigil/review-order.yaml` locally (schema below). It is gitignored; never `git add -f` it.
-3. **Code review.** Launch the `code-reviewer` agent with: `target` = the PR number and worktree path, `base` = the PR base, `epic` = the epic id, `stacked_upon` = `true` if the epic's Stacks section names this branch as a parent/foundation, else `false`, `tier` from the task tag (`review-deep` -> `deep`, else `standard`), `mode` = `ledger`, `run_dir` = a fresh `<scratchpad>/review-pr<n>-<timestamp>/`. The reviewer runs in the background, and its final message can be misrouted or truncated. So don't end your turn while it runs: wait with the Monitor tool until `<run_dir>/REVIEW.md` exists (30-minute timeout), then read the full result from that file.
-4. Handle the result:
+2. **Code review.** Launch the `code-reviewer` agent with: `target` = the PR number and worktree path, `base` = the PR base, `epic` = the epic id, `stacked_upon` = `true` if the epic's Stacks section names this branch as a parent/foundation, else `false`, `tier` from the task tag (`review-deep` -> `deep`, else `standard`), `mode` = `ledger`, `run_dir` = a fresh `<scratchpad>/review-pr<n>-<timestamp>/`. The reviewer runs in the background, and its final message can be misrouted or truncated. So don't end your turn while it runs: wait with the Monitor tool until `<run_dir>/REVIEW.md` exists (30-minute timeout), then read the full result from that file.
+3. Handle the result:
    - **INTERRUPT:** the final message begins with `INTERRUPT:`. Stop, do not merge, and report the finding to the lead immediately.
    - **L:** fix silently. No report, no ledger.
    - **M/H:** fix each (unless `deferred` or `needs-james`, which stay as proposed). The reviewer already wrote the `open`/other ledger line; for each one you fix, append a new note on the epic reusing the **same PR#, file:line and lens** with `disp=fixed`:
      `tk add-note <epic-id> "Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<M|H> | <summary> | disp=fixed | interrupt=<no|yes>"`.
      Format and dispositions are defined in `code-reviewer.md` (Ledger format v1); `render_ledger.py` keeps the latest entry per PR + file:line + lens, so a mismatched key leaves the `open` line standing and the project->main PR will flag it.
-5. If you changed code in step 4, re-run `make check` (and the tier if the change touched what it exercised), commit, push. Re-run the reviewer only if M/H fixes were substantial; otherwise state in the PR that fixes followed review.
-6. **Merge gate.** Commit everything first, including the task closes (`tk close` in the worktree), and push. Then, on a clean tree, run `make check` as its own command, never chained with commit, push or merge. Merge only once you've seen it exit 0 on that exact HEAD. Any commit after it, even a revert, a reformat or a ticket change, means running it again. Then `gh pr ready <n>` and merge into the PR's base (`gh pr merge <n> --squash`, keep the branch if other branches stack on it). Never merge into `main`. After a stack parent merges, retarget and rebase its child per the epic's stack rules.
-
-`.sigil/review-order.yaml` schema (any other shape is silently ignored):
-```yaml
-files:
-  - path: api/internal/biz/foo.go
-    note: core change; start here
-  - path: api/internal/handlers/foo.go
-    note: thin wiring over the biz method
-```
-Order files in the order a reviewer should read them; one line of why each.
+4. If you changed code in step 3, re-run `make check` (and the tier if the change touched what it exercised), commit, push. Re-run the reviewer only if M/H fixes were substantial; otherwise state in the PR that fixes followed review.
+5. **Merge gate.** Commit everything first, including the task closes (`tk close` in the worktree), and push. Then, on a clean tree, run `make check` as its own command, never chained with commit, push or merge. Merge only once you've seen it exit 0 on that exact HEAD. Any commit after it, even a revert, a reformat or a ticket change, means running it again. Then `gh pr ready <n>` and merge into the PR's base (`gh pr merge <n> --squash`, keep the branch if other branches stack on it). Never merge into `main`. After a stack parent merges, retarget and rebase its child per the epic's stack rules.
 
 ### 8. Report and continue
 After each task, check `tk ready`. Continue if the next task is clear. Stop and report to the lead when: no ready tasks remain; an INTERRUPT; verification you cannot fix; the sim lease is held past a reasonable wait; an unclear task; or a discovery that changes the plan.
@@ -99,4 +88,4 @@ Final report: tasks completed (ids), commits/PRs, human-blocker tasks skipped, l
 - Follow the task description; do not over-engineer.
 - Descriptive branch names; one worktree per stream; reuse existing worktrees.
 - Verify before closing; close immediately after each commit.
-- Never commit `.sigil/` or `.env*` files.
+- Never commit `.env*` files.

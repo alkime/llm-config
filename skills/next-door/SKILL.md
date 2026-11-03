@@ -37,4 +37,14 @@ herdr pane read "$nd" --source recent-unwrapped --lines 120
 - Leave focus where it is unless James asks to look at the pane.
 - Don't close the pane; it's his.
 
+## Annotate a doc
+
+When James asks to annotate or review a Markdown file "next door" (or to "plannotate" it), open it in plannotator-tui there, delivering his annotations back to this pane:
+
+```zsh
+herdr pane run "$nd" "PLANNOTATOR_TUI_FILE='<file.md>' PLANNOTATOR_TUI_DELIVER_TO=$HERDR_PANE_ID plannotator-tui herdr pane"
+```
+
+His annotations arrive in this chat as a message when he finishes; the pane drops back to its shell.
+
 For anything beyond this (agents in panes, other tabs, waits on agent state), load the `herdr` skill.

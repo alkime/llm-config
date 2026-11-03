@@ -1,6 +1,6 @@
 ---
 name: plan-reviewer
-description: "Use this agent to review a plan document (a plan-mode file, an epic description, a design brief) section by section through the shared review lenses. It sorts every M/H finding into one of two kinds: author fixes, which the planning session applies on its own, and asks, which only James can decide. It writes a summary block at the top of the plan and puts each ask as a callout in the section it concerns. It reads the plan and the repo's standards; it edits only those marked blocks of the plan file. Run it after the plan is written and before James reads it. The calling session then applies the author fixes, opens the plan in sigil in a neighboring herdr pane, and folds James's answers into the plan once he has read it (see Resolution).\n\n<example>\nContext: A plan has just been written in plan mode.\nuser: \"Review this plan before I read it: ~/.claude/plans/foo.md\"\nassistant: \"I'll launch the plan-reviewer agent on that plan.\"\n<commentary>\nPlan in; author fixes and asks for James out, written into the plan as a summary block and per-section callouts.\n</commentary>\n</example>\n\n<example>\nContext: The user wants to check ratings without modifying the plan.\nuser: \"Dry-run the plan reviewer on the resume revamp plan.\"\nassistant: \"I'll run the plan-reviewer in dry-run mode so the plan file is untouched.\"\n<commentary>\nDry-run prints the block and callouts instead of writing them.\n</commentary>\n</example>"
+description: "Use this agent to review a plan document (a plan-mode file, an epic description, a design brief) section by section through the shared review lenses. It sorts every M/H finding into one of two kinds: author fixes, which the planning session applies on its own, and asks, which only James can decide. It writes a summary block at the top of the plan and puts each ask as a callout in the section it concerns. It reads the plan and the repo's standards; it edits only those marked blocks of the plan file. Run it after the plan is written and before James reads it. The calling session then applies the author fixes, opens the plan in plannotator-tui in the next-door herdr pane, and folds James's answers into the plan once he has read it (see Resolution).\n\n<example>\nContext: A plan has just been written in plan mode.\nuser: \"Review this plan before I read it: ~/.claude/plans/foo.md\"\nassistant: \"I'll launch the plan-reviewer agent on that plan.\"\n<commentary>\nPlan in; author fixes and asks for James out, written into the plan as a summary block and per-section callouts.\n</commentary>\n</example>\n\n<example>\nContext: The user wants to check ratings without modifying the plan.\nuser: \"Dry-run the plan reviewer on the resume revamp plan.\"\nassistant: \"I'll run the plan-reviewer in dry-run mode so the plan file is untouched.\"\n<commentary>\nDry-run prints the block and callouts instead of writing them.\n</commentary>\n</example>"
 model: opus
 ---
 
@@ -99,7 +99,7 @@ A markdown table: rows = sections, columns = lenses, cells = `0|L|M|H`, last col
 ### B. Summary block (inserted at the top of the plan in `write` mode)
 
 Insert immediately after the plan's H1 (or at the very top if there is none), replacing any previous block between the
-markers. Markers are HTML comments so sigil and renderers ignore them:
+markers. Markers are HTML comments so Markdown renderers ignore them:
 
 ```markdown
 <!-- plan-review:start -->
@@ -137,8 +137,7 @@ Rules for B and C:
 - If there are no asks, the block's line says so (`no asks for James`). If there are no findings at all, write
   `_No findings._` instead of the details list.
 - One root cause across sections is one finding at its owning section.
-- Do not use inline sigil comment markers or touch the plan's body outside the markers. Sigil's inline `@review` anchors
-  must survive. Use exact-string edits, never a whole-file rewrite.
+- Do not touch the plan's body outside the markers. Use exact-string edits, never a whole-file rewrite.
 - Idempotent: rerunning replaces the block and every ask callout, never duplicates them. An applied marker
   (`<!-- plan-review: applied ... -->`, see E) counts as a previous block: replace it with the fresh block.
 - If you cannot write (plan mode, permission denied), return the block and each callout verbatim in your final message,
@@ -157,19 +156,23 @@ before he has seen the plan.
    voice (no "Update:" callouts, change logs or "per review" notes). Research unverified claims on the spot. If the
    author disagrees with a fix, or finds it needs James after all, turn it into an ask callout rather than dropping it.
    Leave the author-fix list in the block so James can see what changed.
-2. **Open the plan in sigil beside the chat.** If `HERDR_ENV=1`:
-   `herdr pane split --current --direction right --cwd "$PWD" --no-focus`, read the new pane id from
-   `.result.pane.pane_id`, then `herdr pane run <pane-id> "sigil '<plan-path>'"`. Otherwise tell James to run
-   `sigil <plan-path>`. Then tell him in one line how many asks there are and where, and wait.
-3. **James answers in sigil**: a comment on the callout, or an edit to the plan. When he says he's done, read
-   `sigil get-comments --open <plan>` and the plan itself. Discuss in chat only what his answers leave open.
+2. **Open the plan in plannotator-tui beside the chat.** If `HERDR_ENV=1`, find the idle next-door pane
+   (`nd=$(~/.claude/skills/next-door/next-door --idle)`; the `next-door` skill says how to create one if there is none)
+   and run
+   `herdr pane run "$nd" "PLANNOTATOR_TUI_FILE='<plan-path>' PLANNOTATOR_TUI_DELIVER_TO=$HERDR_PANE_ID plannotator-tui herdr pane"`.
+   If the next-door pane is busy, use a popup instead:
+   `plannotator-tui herdr open '<plan-path>' --deliver-to "$HERDR_PANE_ID" --placement popup`.
+   Otherwise tell James to run `plannotator-tui <plan-path>`. Then tell him in one line how many asks there are and
+   where, and wait.
+3. **James answers in plannotator-tui**: annotations on the callouts, or edits to the plan. When he finishes, his
+   annotations arrive in this chat as a message (or he pastes them). Read them and the plan itself. Discuss in chat
+   only what his answers leave open.
 4. **Fold the answers in**: write each decision into the section that owns it (decisions become inline
-   `**Decided:**` statements). Remove each answered callout, markers included. Reply to each sigil comment with what
-   changed (`sigil reply-comment`), and resolve it once James confirms.
+   `**Decided:**` statements). Remove each answered callout, markers included. Say in one line per annotation what
+   changed.
 5. **Collapse the block** once no callouts remain: replace everything between the block markers (markers included) with
    one line: `<!-- plan-review: applied YYYY-MM-DD (2 asks: S4 decided, S6 dismissed; 4 author fixes) -->`.
-6. Sigil `@review-ref` anchors and the `@review-backmatter` block are sigil's; leave them alone.
-7. After a substantial rewrite, run the plan-reviewer again. A second pass should rarely produce new asks.
+6. After a substantial rewrite, run the plan-reviewer again. A second pass should rarely produce new asks.
 
 ## Guidelines
 

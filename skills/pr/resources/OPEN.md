@@ -120,7 +120,6 @@ Output the PR URL so the user can review it.
 ## Notes
 
 - For stacked PRs, add "Stack: based on `<parent-branch>` (n/m)" to the Summary; when the parent merges, retarget (`gh pr edit --base`) and `git rebase`, never merge.
-- Write `.sigil/review-order.yaml` locally if the project uses sigil review (never commit it).
 - Always use `/tmp/claude/` for temp files (sandbox-safe)
 - The `--body-file` flag avoids shell quoting issues with complex markdown
 - Ask before overwriting existing descriptions that have content

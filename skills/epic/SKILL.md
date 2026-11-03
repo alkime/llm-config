@@ -5,7 +5,7 @@ description: Turn an approved plan into a tk epic ready for hands-off artificers
 
 # Epic - Plan to tk Epic
 
-Converts an approved plan (plan mode output, usually sigil-reviewed) into a `tk` epic plus child tasks. The epic is the only handoff to artificers: it must carry everything a stream needs (branches, bases, stacking rules, tiers, blockers). It is also the source for the project->main PR (see the `pr` skill): the Ledger accumulates on it as notes, and its smoke-test seed becomes the Smoke-test guide.
+Converts an approved plan (plan mode output, usually plan-reviewed) into a `tk` epic plus child tasks. The epic is the only handoff to artificers: it must carry everything a stream needs (branches, bases, stacking rules, tiers, blockers). It is also the source for the project->main PR (see the `pr` skill): the Ledger accumulates on it as notes, and its smoke-test seed becomes the Smoke-test guide.
 
 **Hard rule: use the `tk` CLI only.** Never edit `.tickets/*.md` directly. Bodies go in via `-d`/`--design`/`--acceptance` (use `"$(cat file)"` for long text); changes after creation go through `tk add-note`, `tk dep`, `tk status`, etc. Run tk from the repo root of the project that owns the tickets.
 
@@ -18,7 +18,7 @@ Converts an approved plan (plan mode output, usually sigil-reviewed) into a `tk`
 
 ### 1. Optional: plan-reviewer pass
 
-Offer (or run, if the user asked) the `plan-reviewer` agent on the plan before ticketing, ideally before James reads it. It sorts findings into author fixes (applied without asking James) and asks (callouts in the sections where James must decide), then the plan opens in sigil beside the chat. Follow the agent's "Resolution" section. Skip for small plans (S-sized streams, no schema, no new API surface). Never ticket from a plan with unresolved findings: a `plan-review:start` block or any `plan-review:ask` callout still in the plan means unresolved; a one-line `plan-review: applied` marker means resolved.
+Offer (or run, if the user asked) the `plan-reviewer` agent on the plan before ticketing, ideally before James reads it. It sorts findings into author fixes (applied without asking James) and asks (callouts in the sections where James must decide), then the plan opens in plannotator-tui beside the chat. Follow the agent's "Resolution" section. Skip for small plans (S-sized streams, no schema, no new API surface). Never ticket from a plan with unresolved findings: a `plan-review:start` block or any `plan-review:ask` callout still in the plan means unresolved; a one-line `plan-review: applied` marker means resolved.
 
 ### 2. Decompose into streams
 
