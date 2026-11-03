@@ -24,12 +24,16 @@ main <- <external-parent-pr-branch> <- <project-branch>   (external; manage with
 Foundation PRs (HIGH findings interrupt): <branches>
 
 ## Migrations
-Foundation task: <id>. Additive mid-project migrations: artificer may apply. Rewrites of applied migrations: human-blocker "schema rewind".
+Foundation task: <id>. Additive mid-project migrations: artificer may apply. Rewrites of applied migrations on shared data: human-blocker "schema rewind".
 <!-- or --> No schema changes.
+
+## Verification
+<!-- Only when the project's CLAUDE.md/AGENTS.md defines no verify tiers; otherwise omit this section. -->
+Gate: <command>. Bootstrap: <command>. verify-integration: <what it runs>. verify-full: <what it runs, or "not used">.
 
 ## Smoke-test guide (seed)
 - [ ] <step James runs on the project->main PR, with expected result>
-- [ ] (voice) <steps from verify-voice tasks>
+- [ ] (manual) <steps from verify-voice tasks>
 
 ## Before merging to main
 - <human-blocker task id>: <what>

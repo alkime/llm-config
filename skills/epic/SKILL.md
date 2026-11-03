@@ -13,6 +13,13 @@ Converts an approved plan (plan mode output, usually plan-reviewed) into a `tk` 
 
 - The approved plan file (path), and the project branch name if already chosen.
 - The brief/vault note, if any (link it in the epic).
+- The project's verification conventions (below).
+
+## Project conventions
+
+The skill is project-agnostic: tier names and the pipeline are fixed here; what each tier *runs* belongs to the project. Before ticketing, find the project's verify-tier definitions: a "Verify tiers" section in its `CLAUDE.md` or `AGENTS.md`, or the doc such a section points to (Penny's AGENTS.md "Verifying in a worktree" points to `docs/runbooks/worktree-verification.md`). Read from it: the gate command (the full check before a PR, e.g. `make check`), the worktree bootstrap, what `verify-integration` and `verify-full` run, how schema changes are applied, and the hard rules for shared resources.
+
+If the project defines no tiers, ask James for the gate command and which tiers apply (a project with no client app has no `verify-full`). Write his answers into the epic body as a `## Verification` section so artificers have them, and offer to add a "Verify tiers" section to the project's `CLAUDE.md` so the next epic doesn't need to ask.
 
 ## Workflow
 
@@ -37,39 +44,38 @@ main <- parent-branch <- child-branch
 Rules to state once, in the epic (artificers read them there, not in tickets):
 - Child worktree is cut from the parent branch; child PR targets the parent branch (or the project branch for streams not in a stack).
 - When the parent merges: retarget the child to the parent's base, `git rebase` (never merge), `git push --force-with-lease`.
-- If the project branch itself sits atop another held PR (as resume-revamp sat on assistant-attachments), declare that as an external stack and manage it with `gh stack`; moving the base is `gh stack sync` / `gh stack rebase`, never a merge.
+- If the project branch itself sits atop another held PR, declare that as an external stack and manage it with `gh stack`; moving the base is `gh stack sync` / `gh stack rebase`, never a merge.
 - A stack parent is a **foundation PR**: a HIGH review finding on it interrupts James; elsewhere HIGH goes on the Ledger.
 
 Only declare a stack where the child genuinely needs the parent's code. Otherwise streams are parallel siblings off the project branch.
 
 ### 4. Migrations first
 
-All schema work known at plan time goes in **one foundation task, the first task of the first stream**, and every task that touches the new schema depends on it (`tk dep`). Apply once to the shared Supabase (never `db reset`). Rules:
+All schema work known at plan time goes in **one foundation task, the first task of the first stream**, and every task that touches the new schema depends on it (`tk dep`). How migrations are applied is the project's (a shared dev database applied once, or a local file the app migrates itself); follow its docs. Rules:
 - Additive migrations discovered mid-project: the artificer may add and apply them.
-- Rewriting an already-applied migration: create a `human-blocker` "schema rewind" task (reset + replay + reseed) instead; James confirms.
-- Privilege/Data-API grants go in `supabase/seed.sql`, never migrations.
-- Foundation task tier is at least `verify-integration`.
+- Rewriting an already-applied migration, where that would destroy shared data: create a `human-blocker` "schema rewind" task (the project's reset + replay + reseed) instead; James confirms. Where each worktree's database is its own and disposable, a rewrite is ordinary work.
+- Foundation task tier is at least `verify-integration` (or the project's highest automated tier, if lower).
 
 If the plan has no schema work, omit the task and write "No schema changes" in the epic so the absence is deliberate.
 
 ### 5. Tag every task with a verify tier
 
-Exactly one per task (see Tags). Pick the cheapest tier that actually exercises the change:
+Exactly one per task (see Tags). Pick the cheapest tier that actually exercises the change. The project's docs say what each tier runs; the general shape:
 
 | Tag | Meaning | Typical |
 |-----|---------|---------|
-| `verify-cursory` | `make check` only | docs, prompts, refactors with test coverage, config |
-| `verify-integration` | + compose up + `INTEGRATION=1` + API checks against the per-worktree ports | handlers, jobs, migrations, RPCs |
-| `verify-full` | + iOS simulator smoke under the sim lease | mobile UI, flows crossing client and server |
-| `verify-voice` | no automated verification of live duplex; becomes a Ledger/smoke item for James | anything needing real-time voice or ElevenLabs |
+| `verify-cursory` | the project's gate only | docs, prompts, refactors with test coverage, config |
+| `verify-integration` | + the app running on the worktree's own ports/data, checked through its API or CLI | handlers, jobs, migrations, adapters |
+| `verify-full` | + an end-to-end smoke in a real client (simulator, browser) | client UI, flows crossing client and server |
+| `verify-voice` | can't be verified by an agent (live voice, real hardware, a person's judgment); becomes a smoke item for James | anything needing real-time voice or a physical device |
 
-A task that is both testable and voice-dependent gets its testable tier plus a `verify-voice` note in its body; use tag `verify-voice` alone only when nothing else can run. Always add the stream tag too (e.g. `ws-<stream>`) and any domain tags (`backend`, `mobile`, ...).
+A task that is both testable and needs a human check gets its testable tier plus a `verify-voice` note in its body; use tag `verify-voice` alone only when nothing else can run. Always add the stream tag too (e.g. `ws-<stream>`) and any domain tags (`backend`, `mobile`, ...).
 
 Also add one review tier tag (`review-standard` or `review-deep`) beside the verify tag. Use `review-deep` when the task's PR is stacked-upon (a foundation PR), touches migrations/schema, touches auth/RBAC, or will exceed ~800 changed lines; otherwise `review-standard`. The artificer passes the tier to the code-reviewer; where a stream's tasks differ, the deepest tier wins for the stream's PR.
 
 ### 6. Human-blocker tasks
 
-Anything an agent cannot or must not do: manual console config (EL agent client events, ASC, Supabase dashboard), secrets (`fly secrets set`), TestFlight uploads, data cleanup on staging/prod, schema rewinds, `make e2e` attestation, calibration sessions. Each is a task tagged `human-blocker` (plus a verify tag, usually `verify-cursory`), with an exact checklist of what to do and what it unblocks. Wire it with `tk dep` so downstream tasks show as blocked. Artificers skip and report these; they never close them.
+Anything an agent cannot or must not do: config in a third-party dashboard, setting deploy secrets, app-store uploads, data cleanup on staging/prod, schema rewinds, the project's e2e attestation, calibration sessions. Each is a task tagged `human-blocker` (plus a verify tag, usually `verify-cursory`), with an exact checklist of what to do and what it unblocks. Wire it with `tk dep` so downstream tasks show as blocked. Artificers skip and report these; they never close them.
 
 ### 7. Create the epic and tasks
 
@@ -80,9 +86,10 @@ Epic body sections, in order (template: [EPIC_TEMPLATE.md](resources/EPIC_TEMPLA
 3. `## Work Streams`: per stream: name, branch, base (project branch or stack parent), ordered task chain, size, "after" constraints.
 4. `## Stacks` (or "None - all streams are siblings off the project branch")
 5. `## Migrations` (foundation task id, or "No schema changes")
-6. `## Smoke-test guide (seed)`: the manual steps James runs on the project->main PR, written as checkboxes while planning; artificers append to it via notes, the `pr` skill renders it.
-7. `## Before merging to main` (human-only pre-flight, out-of-band ops)
-8. `## Out of scope`
+6. `## Verification`, only when the project's docs define no tiers (see Project conventions)
+7. `## Smoke-test guide (seed)`: the manual steps James runs on the project->main PR, written as checkboxes while planning; artificers append to it via notes, the `pr` skill renders it.
+8. `## Before merging to main` (human-only pre-flight, out-of-band ops)
+9. `## Out of scope`
 
 ```bash
 EPIC=$(tk create "Title" -t epic -p 2 --tags <epic-tag> -d "$(cat /tmp/claude/epic-body.md)")
@@ -105,7 +112,7 @@ Launch one `artificer` per stream in a single message (background). Then this se
 ~/.claude/skills/epic/scripts/foreman.sh <project-branch> <stream-branch>…
 ```
 
-It prints one line per stream (head commit and age, PR state and base), one per sim-lease slot, and a last line `ALL MERGED` or `RUNNING`. Lines needing action start with `!`. Arm it with the Monitor tool (`timeout_ms` 1800000), emitting only new `!` lines and the finish:
+It prints one line per stream (head commit and age, PR state and base), one per held sim-lease slot (none for projects that don't use the `ios-sim` lease), and a last line `ALL MERGED` or `RUNNING`. Lines needing action start with `!`. Arm it with the Monitor tool (`timeout_ms` 1800000), emitting only new `!` lines and the finish:
 
 ```bash
 F=~/.claude/skills/epic/scripts/foreman.sh; prev=""
@@ -135,7 +142,3 @@ Thresholds: `FOREMAN_STALL_MIN`, `FOREMAN_LEASE_MIN`.
 | `human-blocker` | task | human-only; artificers skip |
 | `ws-<stream>` | task | stream membership (matches Work Streams) |
 | epic tag | epic + tasks | groups an epic's tickets (optional) |
-
-## Dry-run check (pla-ha6d)
-
-Re-deriving "Polish 10.08" from its plan under this template gives: project branch `polish-10.08`; four sibling streams (voice-recall-and-close-logs, mobile-card-polish, talk-button-semantics, duplex-live-captions), `## Stacks: None`, `## Migrations: No schema changes`; tiers: recall prompt = `verify-cursory` (+ `verify-voice` smoke item), already_finalized log = `verify-integration`, card polish and mic semantics = `verify-full`, live captions = `verify-full` + voice smoke item; and a `human-blocker` task "Add vad_score client event to staging + prod EL agents" gating the main PR. Resume Revamp (pla-5c1f) gives the Stack section (assistant-attachments external parent) and the migration foundation (WS-A.1/WS-D.1 collapse into one first task), and WS-F becomes human-blocker tasks.

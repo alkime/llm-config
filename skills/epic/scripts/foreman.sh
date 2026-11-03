@@ -5,7 +5,8 @@
 # Usage (from the project's main checkout):
 #   foreman.sh <project-branch> <stream-branch>…
 #
-# Prints one line per stream, then the sim-lease slots. Lines that need the
+# Prints one line per stream, then any held sim-lease slots (free slots are
+# omitted, so projects that don't use the simulator see none). Lines that need the
 # orchestrator's attention start with "!":
 #   ! STALLED   stream head hasn't moved for FOREMAN_STALL_MIN minutes (default 45)
 #   ! REBASE    the stream's PR base is a stack parent whose PR has merged
@@ -77,7 +78,8 @@ done
 
 if [[ -x "$SIM_LEASE" ]]; then
   while IFS= read -r line; do
-    # "slot N: held by worktree '…' (pid '…') for 1234s since …"
+    # "slot N: held by worktree '…' (pid '…') for 1234s since …", or "slot N: free"
+    [[ "$line" == *": free" ]] && continue
     if [[ "$line" =~ for\ ([0-9]+)s\ since ]] && (( BASH_REMATCH[1] / 60 >= LEASE_MIN )); then
       echo "! LEASE   sim $line"
     else
