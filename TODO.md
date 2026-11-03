@@ -64,3 +64,12 @@ Goal: on the big project->main merges, open Hunk showing only the files the Ledg
   - A new lens for what no lens covers today: holds under load (check-then-write races, a query per item, lists that only grow), big slowdowns, and code that shouldn't exist (dead code, unused options, one-implementation abstractions).
   - `shortcut: <limit>, <when to upgrade>` comments count as recorded decisions, not findings. Consider surfacing `/ponytail-debt` next to the Ledger at the project->main PR.
   - LENSES.md is shared with the plan-reviewer, so check the new lens's "Applies when" for plans too. Fold in the other code-reviewer items in this file where they fit (the Monitor wait, calibration round 2, the Hunk filtered reload).
+
+## Epic skill: make it project-agnostic
+
+Found while ticketing Hearth's epic 1 (2026-11-02). `skills/epic/SKILL.md` still carries the platform project's assumptions, so a different repo has to redefine them inside each epic body.
+
+- [ ] **Read verify tiers from the project.** The tier names (`verify-cursory`, `-integration`, `-full`, `-voice`) can stay, but their meanings are platform-specific: `make check`, the Compose stack with per-worktree ports and `INTEGRATION=1`, the iOS sim lease, ElevenLabs. Have the skill read each project's meanings from a "Verify tiers" section in its `CLAUDE.md` or `AGENTS.md`, and say what to do when a project doesn't define them. `agents/artificer.md` reads the same tiers, so update it to match.
+- [ ] **Generalise the migrations rules.** "Apply once to the shared Supabase", `db reset` and `supabase/seed.sql` assume one shared hosted database. Reword them around the project's own schema setup (Hearth's is a local SQLite file whose migrations the adapter applies itself), with the Supabase specifics moving to the platform repo's docs.
+- [ ] **Move the platform examples out.** The human-blocker examples (EL agent client events, ASC, `fly secrets set`, TestFlight) and the "Dry-run check" section (`pla-ha6d`, `pla-5c1f`) are platform tickets. Swap them for generic examples, or move them to a platform reference file the skill links to.
+- [ ] Check `scripts/foreman.sh` and `resources/EPIC_TEMPLATE.md` for the same assumptions (the sim-lease slot lines in foreman, for example).
