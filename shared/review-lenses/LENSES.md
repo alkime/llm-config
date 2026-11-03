@@ -83,6 +83,8 @@ adds dependencies, or the plan changes who calls whom.
 - Side effects hidden in constructors, init-time global state, migrations run implicitly at startup.
 - Shared mutable state between features; one feature reaching into another's internals.
 - Error handling that loses context at a boundary (unwrapped errors, swallowed errors).
+- Rules implemented in the wrong engine: e.g. in Pathpoint, an appetite refer/decline decidable from submission data
+  written in rater code instead of PALMS (`feedback_palms_over_rater`).
 
 **Rubric:**
 - H: a boundary violation that makes a later split/rollback impossible without a rewrite (e.g. business rule only
@@ -92,7 +94,8 @@ adds dependencies, or the plan changes who calls whom.
 - L: naming/placement within the right layer; minor over-exposure of exported symbols.
 
 **Read first:** `docs/guides/go-style-guide.md`, `docs/guides/react-typescript-style-guide.md`, repo `AGENTS.md`
-architecture section; memory `feedback_voice_text_split_strict`, `feedback_mobile_compose_decoupled`.
+architecture section; memory `feedback_voice_text_split_strict`, `feedback_mobile_compose_decoupled`,
+`feedback_palms_over_rater`.
 
 **Plan mode:** flag sections whose design needs cross-layer calls the architecture section doesn't allow, or that
 create new coupling between streams.
