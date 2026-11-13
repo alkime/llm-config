@@ -32,7 +32,7 @@ Trigger: the base is `main` AND the head branch is the epic's project branch (na
 
 1. Find the epic: `tk list -T epic` and match the project branch name in the epic body, or take the id from the user. Ask if ambiguous.
 2. Render: `python3 ${CLAUDE_SKILL_DIR}/bin/render_ledger.py <epic-id> > /tmp/claude/ledger.md` (run from the repo that owns the tickets).
-3. Compose the body: Summary (streams merged, from `gh pr list --state merged --base <project-branch>`), then the rendered `## Ledger` and `## Smoke-test guide`, then `## Before merging` (the e2e attestation reminder: James runs `make e2e` from the main checkout on this branch; open human-blocker tasks).
+3. Compose the body: Summary (streams merged, from `gh pr list --state merged --base <project-branch>`), then the rendered `## Ledger` and `## Smoke-test guide`, then `## Before merging` (the project's pre-merge checks from its CLAUDE.md/AGENTS.md, e.g. `make e2e` or a live tier like `bun run test:live`, with the result if you ran it; open human-blocker tasks).
 4. The renderer puts a WARNING banner at the very top and an `UNRESOLVED (open)` table first when any `open` entries remain. In project->main mode, **warn loudly**: repeat the warning in your reply to the user, put the banner at the top of the PR body, and do not describe the PR as ready to merge; list the open items and suggest the artificer fix them (or the user decide) first. Then lead with `needs-james` items. An empty Ledger is stated explicitly ("No flagged review items.").
 5. `gh pr create --base main` / `gh pr edit --body-file`. Re-run and `gh pr edit` whenever new Ledger notes land; the body is regenerated, not hand-edited.
 

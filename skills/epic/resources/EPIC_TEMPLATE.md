@@ -32,8 +32,11 @@ Foundation task: <id>. Additive mid-project migrations: artificer may apply. Rew
 Gate: <command>. Bootstrap: <command>. verify-integration: <what it runs>. verify-full: <what it runs, or "not used">.
 
 ## Smoke-test guide (seed)
+<!-- Only checks no test can do (a person's judgment, hardware, voice, dashboards). -->
 - [ ] <step James runs on the project->main PR, with expected result>
 - [ ] (manual) <steps from verify-voice tasks>
+
+Covered by tests: <check> -> <test file or command>, ... (or "none")
 
 ## Before merging to main
 - <human-blocker task id>: <what>

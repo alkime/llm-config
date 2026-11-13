@@ -3,16 +3,12 @@
   "theme": "solarized-dark",
   "appearance": {
     "icons": "none",
-    "chevrons": {
-      "collapsed": "▶",
-      "expanded": "▼"
-    },
     "scrollbarGlyphs": "blocks"
   },
   "editor": {
     "tabSize": 4,
     "insertSpaces": true,
-    "wordWrap": false,
+    "wordWrap": true,
     "diffMode": "split",
     "diffContext": "changes",
     "diffWordWrap": false,
@@ -28,11 +24,19 @@
     "insertFinalNewline": true,
     "trimTrailingWhitespace": false,
     "focusOnOpen": false,
+    "syntaxHighlight": true,
+    "gitGutter": true,
+    "scrollbarGitMarks": true,
+    "autoDedent": true,
+    "autoIndent": true,
     "gutterStyle": "compact",
     "borderStyle": "default",
     "bracketPairColorization": false,
+    "showTrailingNewline": true,
     "menuBar": true,
-    "transparentBackground": false
+    "transparentBackground": false,
+    "saveAllOnQuit": false,
+    "saveAllOnQuitExceptUnnamed": false
   },
   "search": {
     "debounce": 350
@@ -65,6 +69,12 @@
   },
   "image": {
     "protocol": "auto"
+  },
+  "plugins": {
+    "enabled": true
+  },
+  "welcome": {
+    "recentFolders": true
   },
   "formatters": {
     "json": "jq ."

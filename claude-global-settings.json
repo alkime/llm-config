@@ -26,11 +26,9 @@
       "Bash(tail *)",
       "Bash(supabase *)",
       "Bash(sort *)",
-      "Bash(python3 *)",
       "Bash(pwd)",
       "Bash(playwright-cli:*)",
       "Bash(playwright-cli *)",
-      "Bash(npx *)",
       "Bash(npm *)",
       "Bash(mv *)",
       "Bash(mkdir *)",
@@ -57,7 +55,9 @@
       "Bash(curl *)",
       "Bash(wget *)",
       "Read(.env)",
-      "Read(.env.*)"
+      "Read(.env.*)",
+      "Read(//Users/jamcmdr/Library/Mobile Documents/iCloud~md~obsidian/Documents/MeHQ/Journal/**)",
+      "Read(//Users/jamcmdr/dev/vault-hq/me-hq-vault/Journal/**)"
     ],
     "ask": [],
     "additionalDirectories": [
@@ -92,13 +92,63 @@
         "source": "github",
         "repo": "dietrichgebert/ponytail"
       }
+    },
+    "signoz-skills": {
+      "source": {
+        "source": "github",
+        "repo": "SigNoz/agent-skills"
+      }
     }
   },
+  "feedbackDrafts": "off",
   "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",
+  "pluginConfigs": {
+    "signoz@signoz-skills": {
+      "options": {
+        "SIGNOZ_MCP_URL": "https://mcp.us2.signoz.cloud/mcp"
+      }
+    }
+  },
   "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "verbose": false,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "In repositories whose GitHub remote belongs to the alkime or pennyhelps organizations (e.g. alkime/hearth, pennyhelps/platform; working directories under /Users/jamcmdr/dev/alkime or /Users/jamcmdr/dev/pennyhelps): merging a pull request (gh pr merge) whose base branch is NOT main/master — e.g. an epic project branch — is allowed without asking the user, when the PR was opened by an artificer/agent working a tk epic task and the code-reviewer has run on it. This exception NEVER applies to Pathpoint repositories (anything under /Users/jamcmdr/dev/pathpoint or with a Pathpoint remote), nor to any other organization; there, merges follow the default rules."
+    ],
+    "soft_deny": [
+      "$defaults",
+      "Merging any pull request into main or master (gh pr merge on a PR whose base is main/master, or pushing/merging directly to main) still requires the user to ask for it explicitly."
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: assume private (no remote configured; repo has no tracked files yet — treat as private until a remote is added)",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured",
+      "**Default / protected branches**: unknown — origin/HEAD unset, not queryable via gh (no remote)",
+      "**CI/CD deploy targets**: None configured",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine with open internet",
+      "**Source control**: this repo (vault-hq) at /Users/jamcmdr/dev/vault-hq, which has no remote configured; it symlinks to sibling repos alkime/basalt, alkime/me-hq-vault, and pennyhelps/penny-obsidian-vault, each with its own remote — treat those as separate repos, not part of this trust scope",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: None configured",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: any file or store holding personal data, confidential business data, credentials, regulated data, or similarly sensitive material; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar — note this workspace holds personal life content (MeHQ) and startup business content (Penny Helps)",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries prod or production as a whole word or name segment",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries prod or production as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development (Obsidian vault coordination — editing Markdown and .base files across linked vault repos, no build/lint/test step)",
+      "**Trusted repo**: /Users/jamcmdr/dev/vault-hq (no remote configured); work inside the symlinked vaults (basalt/, me-hq-vault/, PennyObsidianVault/) happens in their own repos (alkime/basalt, alkime/me-hq-vault, pennyhelps/penny-obsidian-vault) and commits there are separate, per-vault commits — never span vaults in one commit",
+      "**Org-specific CLIs**: None configured"
+    ]
+  }
 }

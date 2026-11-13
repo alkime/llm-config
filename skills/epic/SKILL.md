@@ -87,7 +87,7 @@ Epic body sections, in order (template: [EPIC_TEMPLATE.md](resources/EPIC_TEMPLA
 4. `## Stacks` (or "None - all streams are siblings off the project branch")
 5. `## Migrations` (foundation task id, or "No schema changes")
 6. `## Verification`, only when the project's docs define no tiers (see Project conventions)
-7. `## Smoke-test guide (seed)`: the manual steps James runs on the project->main PR, written as checkboxes while planning; artificers append to it via notes, the `pr` skill renders it.
+7. `## Smoke-test guide (seed)`: the manual steps James runs on the project->main PR, written as checkboxes while planning; artificers append to it via notes, the `pr` skill renders it. **List only what automation can't check.** For each candidate step, ask whether a test could do it, including a gated tier against a real provider (Hearth's `LIVE=1`): if so, make that test part of a task's acceptance instead, and list it under `Covered by tests:` below the checkboxes (`<check> -> <test file or command>`) so James can see nothing was dropped. What's left is a person's judgment, real hardware or voice, and third-party dashboards.
 8. `## Before merging to main` (human-only pre-flight, out-of-band ops)
 9. `## Out of scope`
 
