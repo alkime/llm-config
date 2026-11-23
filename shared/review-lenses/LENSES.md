@@ -276,6 +276,85 @@ Tasks/epics tag the code-reviewer tier beside the `verify-*` tag: `review-standa
 (foundation/stacked-upon PRs, migrations/schema, auth/RBAC, or diffs over ~800 lines). The epic template
 (process-agents branch, `skills/epic`) should emit this tag per task; pla-uddh wires it through the artificer.
 
+## 9. logic-bugs
+
+**Applies when:** always, on any diff that changes code (not only docs or config). Never skipped.
+
+**Check:**
+- Plain logic errors in the changed lines: wrong condition or operator, off-by-one, nil/empty/zero not handled, wrong
+  variable, a missing case in a switch or mapping, an error that is swallowed or turned into a silent default.
+- A failure that is only logged (warn and continue) when it really means a lost write or a wrong result the user never
+  sees; an error message that doesn't name the record (risk, quote, entity ID) it failed on.
+- An index, key or count taken from one collection and used on another (a filtered or sorted copy, or a list that is
+  only appended conditionally).
+- **Consumers of what changed.** When the diff changes what a function, predicate, mapping, constant or data file
+  returns or contains (a new enum value, a slug joining a `Coverage()`/`IsX()` group, a list gaining an entry, a
+  changed return shape), grep its callers and check each one is still right for the new value, including callers the
+  diff does not touch. Most real bugs a hunk-only read misses live there.
+
+**Rubric:**
+- H: wrong money, data loss or corruption, or a crash reachable in normal operation.
+- M: wrong output, a crash or a misapplied write on a reachable but less common path (an edge input, a second
+  building, a missing optional attribute); an untouched caller that the change makes wrong.
+- L: a defensive check missing on a path that can't be reached today; an unclear but correct condition.
+
+**Read first:** the callers of every changed symbol (grep), and the tests around them.
+
+**Plan mode:** flag sections that change a shared function, predicate or mapping without naming who consumes it.
+
+---
+
+## 10. rollout-compat
+
+**Applies when:** the diff changes behaviour that is already live: anything behind a release flag, a schema or data
+shape, an API/GraphQL/RPC/proto contract, a stored value's meaning, or code split across services that deploy
+separately.
+
+**Check:**
+- Behaviour with the flag **off** is unchanged (flags flip after deploy, never with it). Any flag-off change needs a gate.
+- Rows, documents and queued jobs already in storage still read correctly under the new code (old enum values, missing
+  new fields, nulls).
+- A contract change doesn't break a caller still on the old version: a removed or renamed field, a newly required
+  argument, a changed meaning.
+- Deploy order: if service A needs B's change first, the PR says so, or A tolerates B being old.
+- The change can be rolled back: the previous version still works with any data the new one wrote.
+
+**Rubric:**
+- H: a deploy that breaks live traffic or corrupts stored data, or a rollback that can't work.
+- M: flag-off behaviour changes; old rows or old clients hit a wrong result or an error on a reachable path; an
+  unstated deploy-order dependency.
+- L: a compatibility shim that is never needed; the PR doesn't mention a rollout step it handles anyway.
+
+**Read first:** the repo's flag and release docs and the API/schema conventions in AGENTS.md; memory
+`flags-flip-after-deploy` where it exists.
+
+**Plan mode:** flag sections that change live behaviour, data or contracts without a rollout and rollback order.
+
+---
+
+## 11. performance
+
+**Applies when:** the diff adds or changes DB queries, RPC/HTTP calls, loops over collections, or code on a hot path
+(request handlers, quoting, rendering lists).
+
+**Check:**
+- A query or RPC inside a loop (N+1) that could be one batched call.
+- Loading a whole table, tree or file that grows without bound, where a filter, limit or page would do.
+- Extra sequential round trips on a hot path that could run once or in parallel; repeated work that could be cached
+  for the request.
+- A missing index on a new query's filter or join column.
+
+**Rubric:**
+- H: a change that times out or exhausts memory at production data sizes.
+- M: N+1 or an unbounded load on a path users hit regularly; a new query with no index on a large table.
+- L: a small redundant call or loop on a cold path.
+
+**Read first:** the repo's DB and query guidelines; existing loaders/batching helpers (e.g. DataLoader).
+
+**Plan mode:** flag sections that add per-item calls or full-table reads without stating expected sizes.
+
+---
+
 ## Lens selection cheatsheet (code-reviewer)
 
 | Diff contains | Lenses |
@@ -287,5 +366,8 @@ Tasks/epics tag the code-reviewer tier beside the `verify-*` tag: `review-standa
 | tests / e2e / CI scripts | verifiability-tests |
 | any new identifier naming a vendor | provider-agnostic-naming |
 | sessions, jobs, finalize/close/retry paths | correctness-lifecycle |
+| any code change | logic-bugs (always) |
+| flags, schema/data shape, API/RPC contracts, multi-service changes | rollout-compat |
+| queries, RPC calls, loops over collections, hot paths | performance |
 
 A lens with no matching signal is skipped. When unsure, run it.

@@ -50,13 +50,14 @@ Use the cheatsheet and each lens's "Applies when" in LENSES.md. Record every len
 
 ### 3. Lens passes
 
-Only the judge (you) runs on opus; lens subagents run on `sonnet`. `correctness-lifecycle` is never skipped in either
-tier (when its "applies when" matches).
+Only the judge (you) runs on opus; lens subagents run on `sonnet`. `logic-bugs` is never skipped on a code diff, and
+`correctness-lifecycle` is never skipped when its "applies when" matches, in either tier.
 
 **Tier `standard` (default):**
-1. One sonnet subagent runs **every applicable lens except correctness-lifecycle** in a single pass, given each lens's
+1. One sonnet subagent runs **every applicable lens except logic-bugs and correctness-lifecycle** in a single pass, given each lens's
    section from LENSES.md and the full diff.
-2. A dedicated sonnet subagent always runs correctness-lifecycle.
+2. A dedicated sonnet subagent always runs logic-bugs, plus correctness-lifecycle when it applies. It reads the
+   callers of every changed symbol, not only the diff.
 3. Launch both in one message, then run the judge pass.
 
 **Tier `deep`:** one sonnet subagent per applicable lens, all launched in a single message, then the judge pass.
@@ -80,7 +81,7 @@ reach you, so the hand-off goes through files:
 1. Before launching, create a run directory: `<scratchpad>/review-<target>-<YYYYmmdd-HHMMSS>/`. Use the scratchpad
    directory from your system prompt, or `${TMPDIR:-/tmp}` if there isn't one.
 2. Tell each subagent the exact path its report goes to: `<run-dir>/<lens>.md` (standard tier: `<run-dir>/combined.md`
-   and `<run-dir>/correctness-lifecycle.md`).
+   and `<run-dir>/correctness.md`).
 3. After launching, **do not end your turn.** Wait until every expected file exists, using the Monitor tool with an
    until-loop over the file paths and a 20-minute timeout. Do not poll with sleeps.
 4. If a file is still missing at the timeout, resume that subagent with SendMessage and ask it to write the file. Wait
@@ -186,7 +187,7 @@ Run it from anywhere in the project; `tk` walks up to the nearest `.tickets/` (f
 |-------|---------|
 | `PR#<n>` | PR number (for a slice of an aggregate PR, the slice's own PR). If the PR is not opened yet, write `PR#0`; the artificer writes the entries after opening so the number is real. |
 | `<file>:<line>` | New-side location. One location; extras go in the summary. |
-| `lens=` | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`, `correctness-lifecycle`). |
+| `lens=` | Lens id from LENSES.md (`ownership-dry`, `coupling-boundaries`, `data-model-migrations`, `security-auth`, `verifiability-tests`, `copy-style`, `provider-agnostic-naming`, `correctness-lifecycle`, `logic-bugs`, `rollout-compat`, `performance`). |
 | `sev=` | `M` or `H`. L is never written. |
 | summary | One sentence, <= 200 chars. **Must not contain `|`**, newlines, user message content, or secrets. |
 | `disp=` | `open` (M/H that must be fixed before merge and is not yet; the artificer rewrites it as `fixed` after fixing), `fixed` (resolved in the PR before merge), `deferred` (accepted and tracked; name the follow-up ticket in the summary if one exists), `needs-james` (a decision the human must make at the project->main PR). |
