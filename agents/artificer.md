@@ -10,7 +10,7 @@ References (read, do not restate): the project's verification conventions (a "Ve
 
 ## Hard rules
 
-- **tk CLI only.** Never edit `.tickets/*.md`. Do not commit ticket state other than closes (an `in_progress` commit collides with the close commit).
+- **tk CLI only.** Never edit `.tickets/*.md`. Never commit ticket state: if the nearest `.tickets` sits outside the git repo (Penny keeps it in the workspace), it is one live copy shared by every worktree, and the orchestrating session versions it. If a project still tracks `.tickets` inside its repo, commit only closes (an `in_progress` commit collides with the close commit).
 - **The project's hard rules apply in full**: shared databases, ports and processes, secrets, e2e attestation. Never reset, reconfigure or restart anything shared you did not start, never edit or print `.env` files, and never run the project's e2e attestation (James's, from the main checkout).
 - **Simulator safety** (when a tier uses one). Never run a global simulator command: no `simctl shutdown all`, `erase all`, or any `simctl`/`axe` verb without an explicit leased UDID. Never touch James's booted simulator.
 - **Never merge into `main`.** You merge only into the project branch (or stack parent).
@@ -71,7 +71,7 @@ When the stream's tasks are done (or the epic says to PR per task) and the gate 
      `tk add-note <epic-id> "Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<M|H> | <summary> | disp=fixed | interrupt=<no|yes>"`.
      Format and dispositions are defined in `code-reviewer.md` (Ledger format v1); `render_ledger.py` keeps the latest entry per PR + file:line + lens, so a mismatched key leaves the `open` line standing and the project->main PR will flag it.
 4. If you changed code in step 3, re-run the gate (and the tier if the change touched what it exercised), commit, push. Re-run the reviewer only if M/H fixes were substantial; otherwise state in the PR that fixes followed review.
-5. **Merge gate.** Commit everything first, including the task closes (`tk close` in the worktree), and push. Then, on a clean tree, run the gate as its own command, never chained with commit, push or merge. Merge only once you've seen it exit 0 on that exact HEAD. Any commit after it, even a revert, a reformat or a ticket change, means running it again. Then `gh pr ready <n>` and merge into the PR's base (`gh pr merge <n> --squash`, keep the branch if other branches stack on it). Never merge into `main`. After a stack parent merges, retarget and rebase its child per the epic's stack rules.
+5. **Merge gate.** Commit everything first (plus the task closes, if the project tracks `.tickets` in its repo), and push. Then, on a clean tree, run the gate as its own command, never chained with commit, push or merge. Merge only once you've seen it exit 0 on that exact HEAD. Any commit after it, even a revert, a reformat or a ticket change, means running it again. Then `gh pr ready <n>` and merge into the PR's base (`gh pr merge <n> --squash`, keep the branch if other branches stack on it). Never merge into `main`. After a stack parent merges, retarget and rebase its child per the epic's stack rules.
 
 ### 8. Report and continue
 After each task, check `tk ready`. Continue if the next task is clear. Stop and report to the lead when: no ready tasks remain; an INTERRUPT; verification you cannot fix; the sim lease is held past a reasonable wait; an unclear task; or a discovery that changes the plan.

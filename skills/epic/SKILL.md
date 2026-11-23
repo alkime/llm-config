@@ -7,7 +7,7 @@ description: Turn an approved plan into a tk epic ready for hands-off artificers
 
 Converts an approved plan (plan mode output, usually plan-reviewed) into a `tk` epic plus child tasks. The epic is the only handoff to artificers: it must carry everything a stream needs (branches, bases, stacking rules, tiers, blockers). It is also the source for the project->main PR (see the `pr` skill): the Ledger accumulates on it as notes, and its smoke-test seed becomes the Smoke-test guide.
 
-**Hard rule: use the `tk` CLI only.** Never edit `.tickets/*.md` directly. Bodies go in via `-d`/`--design`/`--acceptance` (use `"$(cat file)"` for long text); changes after creation go through `tk add-note`, `tk dep`, `tk status`, etc. Run tk from the repo root of the project that owns the tickets.
+**Hard rule: use the `tk` CLI only.** Never edit `.tickets/*.md` directly. Bodies go in via `-d`/`--design`/`--acceptance` (use `"$(cat file)"` for long text); changes after creation go through `tk add-note`, `tk dep`, `tk status`, etc. Run tk from inside the project that owns the tickets; it walks up to the nearest `.tickets/`. Where that directory is its own git repo (Penny: the workspace `.tickets`), commit it after creating the epic.
 
 ## Inputs
 

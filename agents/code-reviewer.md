@@ -36,6 +36,10 @@ The caller supplies (ask once if essential ones are missing):
   slices you did not review.
 - Read the repo's standards that the lenses point to (style guides, AGENTS.md). The memory feedback files named in
   LENSES.md may exist at `~/.claude/projects/<project-slug>/memory/feedback_*.md`; read the ones a lens cites.
+- Project checklist: walk up from the repo root (the way `tk` finds `.tickets/`) to the nearest `REVIEW-CHECKLIST.md`.
+  If one exists, give it to every lens pass along with the standards. Apply each item as an extra check, citing it by
+  heading (e.g. `REVIEW-CHECKLIST: Sibling registries`). Items may require looking outside the diff; do that. Where an
+  item says not to flag something, the judge drops such findings.
 - zsh note: write `git show "${sha}:path"`, not `$sha:path` (zsh treats `:p` as a modifier).
 - Lens passes may run inline for small diffs, but then say so in the summary (the judge pass is not independent).
 - Read the epic (`tk show <epic>`) for intended scope. A finding about something the epic explicitly scoped out or
@@ -176,7 +180,7 @@ Ledger: PR#<n> | <file>:<line> | lens=<lens> | sev=<M|H> | <summary> | disp=<fix
 tk add-note pla-ppz0 "Ledger: PR#304 | api/internal/biz/voice.go:112 | lens=provider-agnostic-naming | sev=M | Column elevenlabs_conversation_id names a generic concept after a vendor | disp=deferred | interrupt=no"
 ```
 
-Run it from the platform main checkout (where `.tickets/` lives). `tk` prepends a timestamp.
+Run it from anywhere in the project; `tk` walks up to the nearest `.tickets/` (for Penny, the workspace copy shared by every checkout and worktree). `tk` prepends a timestamp.
 
 | Field | Meaning |
 |-------|---------|
